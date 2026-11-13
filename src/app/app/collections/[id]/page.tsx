@@ -3,7 +3,7 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, Reorder, LayoutGroup } from "motion/react";
-import { ArrowLeft, Pencil, Trash2, Plus, Users, GripVertical, X, UserPlus } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Plus, Users, GripVertical, X, UserPlus, Search, Folder } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/shell";
 import { Button, Card, Dialog, EmptyState, ProgressBar, StatusPill, inputCls, useToast } from "@/components/ui";
@@ -22,18 +22,22 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
   const [q, setQ] = useState("");
   const [email, setEmail] = useState(""); const [role, setRole] = useState<"editor" | "viewer">("editor"); const [inviteErr, setInviteErr] = useState("");
   const [order, setOrder] = useState<string[] | null>(null);
+  const [fq, setFq] = useState(""); const [yFrom, setYFrom] = useState(""); const [yTo, setYTo] = useState("");
 
   if (!c) return <EmptyState title="Collection not found" body="It may have been deleted." action={<Link href="/app/collections"><Button>All collections</Button></Link>} />;
   const ids = order && order.length === c.paperIds.length && order.every((x) => c.paperIds.includes(x)) ? order : c.paperIds;
-  const papers = ids.map((pid) => ws.papers.find((p) => p.id === pid)).filter((p): p is NonNullable<typeof p> => !!p);
-  const read = papers.filter((p) => p.status === "read").length;
-  const target = c.goal ?? papers.length;
+  const allPapers = ids.map((pid) => ws.papers.find((p) => p.id === pid)).filter((p): p is NonNullable<typeof p> => !!p);
+  const filtering = !!(fq.trim() || yFrom || yTo);
+  const papers = allPapers.filter((p) => (!fq.trim() || p.title.toLowerCase().includes(fq.trim().toLowerCase())) && (!yFrom || (p.year ?? 0) >= +yFrom) && (!yTo || (p.year ?? 99999) <= +yTo) && (!(yFrom || yTo) || !!p.year));
+  const folder = ws.folders.find((f) => f.id === c.folderId);
+  const read = allPapers.filter((p) => p.status === "read").length;
+  const target = c.goal ?? allPapers.length;
   const members = ws.members[c.id] ?? [];
   const candidates = ws.papers.filter((p) => !c.paperIds.includes(p.id) && p.title.toLowerCase().includes(q.toLowerCase())).slice(0, 30);
 
   return (
     <div>
-      <Link href="/app/collections" className="mb-4 inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink"><ArrowLeft className="size-4" aria-hidden />Collections</Link>
+      <Link href="/app/collections" className="mb-4 inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink"><ArrowLeft className="size-4" aria-hidden />Collections</Link>{folder && <span className="mb-4 ml-2 inline-flex items-center gap-1 text-sm text-ink-3">/ <Folder className="size-3.5" style={{ color: folder.color }} aria-hidden />{folder.name}</span>}
       <PageHeader step={c.shared ? "shared" : "collections"} eyebrow={<span className="flex items-center gap-2 text-xs text-ink-3"><span className="h-1.5 w-8 rounded-full" style={{ background: c.color }} aria-hidden />{c.shared ? "Shared project" : "Private collection"}</span>}
         title={c.name} description={c.description}
         actions={<>
@@ -49,11 +53,19 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
             <div className="mt-2"><ProgressBar value={target ? Math.min(100, Math.round((read / target) * 100)) : 0} /></div>
             <Link href={`/app/library?collection=${c.id}`} className="mt-2 inline-block text-xs text-accent hover:underline">Filter in library →</Link>
           </Card>
-          {papers.length === 0 ? <EmptyState title="This collection is empty" body="Add papers from your library to start tracking progress here." action={<Button variant="primary" onClick={() => setAdding(true)}>Add papers</Button>} /> : (
+          {allPapers.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center gap-2" role="search" aria-label="Search this collection">
+              <div className="relative min-w-48 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" aria-hidden /><input value={fq} onChange={(e) => setFq(e.target.value)} placeholder="Find a paper by name" aria-label="Find a paper by name" className={cn(inputCls, "h-9 pl-9")} /></div>
+              <input type="number" value={yFrom} onChange={(e) => setYFrom(e.target.value)} placeholder="Year from" aria-label="Published from year" className={cn(inputCls.replace("w-full ", ""), "h-9 w-28")} />
+              <input type="number" value={yTo} onChange={(e) => setYTo(e.target.value)} placeholder="Year to" aria-label="Published to year" className={cn(inputCls.replace("w-full ", ""), "h-9 w-28")} />
+              {filtering && <Button size="sm" variant="ghost" onClick={() => { setFq(""); setYFrom(""); setYTo(""); }}>Clear</Button>}
+            </div>
+          )}
+          {filtering && papers.length === 0 ? <p className="rounded-xl border border-dashed border-line py-8 text-center text-sm text-ink-3">No papers in this collection match.</p> : allPapers.length === 0 ? <EmptyState title="This collection is empty" body="Add papers from your library to start tracking progress here." action={<Button variant="primary" onClick={() => setAdding(true)}>Add papers</Button>} /> : (
             <>
-              <p className="mb-2 text-xs text-ink-3">Drag to set your reading order{mode === "cloud" ? " (order is kept for this session)" : ""}.</p>
+              <p className="mb-2 text-xs text-ink-3">{filtering ? `${papers.length} of ${allPapers.length} papers shown · clear the search to reorder` : `Drag to set your reading order${mode === "cloud" ? " (order is kept for this session)" : ""}.`}</p>
               <LayoutGroup>
-                <Reorder.Group axis="y" values={ids} onReorder={setOrder} className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-card">
+                <Reorder.Group axis="y" values={filtering ? papers.map((p) => p.id) : ids} onReorder={(v) => !filtering && setOrder(v)} className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-card">
                   {papers.map((p) => (
                     <Reorder.Item key={p.id} value={p.id} className="flex cursor-grab items-center gap-3 border-b border-line bg-card px-3 py-3 last:border-0 active:cursor-grabbing" whileDrag={{ scale: 1.015, boxShadow: "var(--shadow-lift)", zIndex: 10 }}>
                       <GripVertical className="size-4 shrink-0 text-ink-3" aria-hidden />

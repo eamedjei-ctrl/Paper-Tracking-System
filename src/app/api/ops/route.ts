@@ -87,10 +87,17 @@ async function apply(sb: SupabaseClient, uid: string, email: string, name: strin
         if ((count ?? 0) >= ent.maxCollections) throw new EntitlementError(`Your plan allows up to ${ent.maxCollections} collections.`);
       }
       if (op.data.shared && !ent.sharedProjects) throw new EntitlementError("Shared projects are a Premium feature.");
-      const { error } = await sb.from("collections").upsert({ id: op.id, owner_id: uid, ...op.data, updated_at: new Date().toISOString() });
+      const { folderId, ...rest } = op.data;
+      const { error } = await sb.from("collections").upsert({ id: op.id, owner_id: uid, ...rest, ...(folderId !== undefined ? { folder_id: folderId } : {}), updated_at: new Date().toISOString() });
       if (error) throw error;
       return;
     }
+    case "folder.upsert": {
+      const { error } = await sb.from("folders").upsert({ id: op.id, owner_id: uid, ...op.data });
+      if (error) throw error;
+      return;
+    }
+    case "folder.delete": return sb.from("folders").delete().eq("id", op.id).eq("owner_id", uid);
     case "collection.delete": return sb.from("collections").delete().eq("id", op.id).eq("owner_id", uid);
     case "collection.papers": {
       if (op.remove.length) await sb.from("collection_papers").delete().eq("collection_id", op.id).in("paper_id", op.remove);

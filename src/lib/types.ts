@@ -41,7 +41,10 @@ export interface Collection {
   shared: boolean;
   goal: number | null; // papers to read
   createdAt: string;
+  folderId?: string | null;
 }
+
+export interface Folder { id: string; name: string; color: string; createdAt: string }
 
 export interface Member { email: string; name: string; role: "owner" | "editor" | "viewer"; status: "active" | "invited" | "declined" }
 
@@ -80,6 +83,7 @@ export interface Workspace {
   subscriptionStatus: SubscriptionStatus;
   papers: Paper[];
   collections: Collection[];
+  folders: Folder[];
   members: Record<string, Member[]>; // collectionId -> members
   comments: Comment[];
   activity: ActivityEvent[];

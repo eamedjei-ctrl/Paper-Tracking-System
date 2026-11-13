@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { Workspace, Paper, Collection, Reminder, Profile, SavedView, ActivityEvent, Filters } from "./types";
+import type { Workspace, Paper, Collection, Folder, Reminder, Profile, SavedView, ActivityEvent, Filters } from "./types";
 import { STATUS_LABEL } from "./types";
 import { sampleWorkspace, emptyWorkspace } from "./sample";
 import { entitlementsFor, type Entitlements } from "./plans";
@@ -15,6 +15,9 @@ const DEMO_KEY = "papertrail-demo-v1";
 export const isSupabaseConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 export class LimitError extends Error {}
+
+/** Drop undefined keys so `{ id: undefined }` from a form never overwrites a generated id. */
+const defined = <T extends object>(o: T): Partial<T> => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
 type NewPaper = Partial<Omit<Paper, "id" | "addedAt" | "updatedAt">> & { title: string };
 
@@ -34,6 +37,9 @@ interface Ctx {
   setStatus: (id: string, s: Paper["status"]) => Promise<void>;
   upsertCollection: (c: Partial<Collection> & { name: string }) => Promise<Collection>;
   deleteCollection: (id: string) => Promise<() => void>;
+  upsertFolder: (f: Partial<Folder> & { name: string }) => Promise<Folder>;
+  deleteFolder: (id: string) => Promise<void>;
+  moveCollection: (id: string, folderId: string | null) => Promise<void>;
   setCollectionPapers: (id: string, add: string[], remove: string[]) => Promise<void>;
   upsertReminder: (r: Partial<Reminder> & { text: string; due: string }) => Promise<void>;
   deleteReminder: (id: string) => Promise<void>;
@@ -96,7 +102,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     const raw = typeof window !== "undefined" ? localStorage.getItem(DEMO_KEY) : null;
     if (raw) {
-      try { const w = JSON.parse(raw) as Workspace; if (w.profile.theme === "system") w.profile.theme = "light"; setWs(w); setMode("demo"); return; } catch { localStorage.removeItem(DEMO_KEY); }
+      try { const w = JSON.parse(raw) as Workspace; if (w.profile.theme === "system") w.profile.theme = "light"; w.folders ??= []; setWs(w); setMode("demo"); return; } catch { localStorage.removeItem(DEMO_KEY); }
     }
     setMode("signed_out");
   }, []);
@@ -198,10 +204,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const existing = c.id ? w.collections.find((x) => x.id === c.id) : undefined;
       if (!existing && ent.maxCollections !== null && w.collections.length >= ent.maxCollections) throw new LimitError(`Your plan allows up to ${ent.maxCollections} collections.`);
       if (c.shared && !ent.sharedProjects) throw new LimitError("Shared projects are a Premium feature.");
-      const full: Collection = { id: uid(), description: "", color: "#3048d6", paperIds: [], shared: false, goal: null, createdAt: now(), ...existing, ...c };
+      const full: Collection = { id: uid(), description: "", color: "#3048d6", paperIds: [], shared: false, goal: null, folderId: null, createdAt: now(), ...existing, ...defined(c) } as Collection;
       await commit((w) => ({ ...w, collections: existing ? w.collections.map((x) => (x.id === full.id ? full : x)) : [...w.collections, full],
         members: !existing && full.shared ? { ...w.members, [full.id]: [{ email: userEmail ?? "you@example.com", name: "You", role: "owner", status: "active" }] } : w.members }),
-        [{ type: "collection.upsert", id: full.id, data: { name: full.name, description: full.description, color: full.color, goal: full.goal, shared: full.shared } }]);
+        [{ type: "collection.upsert", id: full.id, data: { name: full.name, description: full.description, color: full.color, goal: full.goal, shared: full.shared, folderId: full.folderId ?? null } }]);
       return full;
     },
     deleteCollection: async (id) => {
@@ -210,10 +216,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       return () => {
         if (!removed) return;
         commit((w) => ({ ...w, collections: [...w.collections, removed] }), [
-          { type: "collection.upsert", id: removed.id, data: { name: removed.name, description: removed.description, color: removed.color, goal: removed.goal, shared: removed.shared } },
+          { type: "collection.upsert", id: removed.id, data: { name: removed.name, description: removed.description, color: removed.color, goal: removed.goal, shared: removed.shared, folderId: removed.folderId ?? null } },
           { type: "collection.papers", id: removed.id, add: removed.paperIds, remove: [] },
         ]).catch(() => {});
       };
+    },
+    upsertFolder: async (f) => {
+      const existing = f.id ? wsRef.current.folders.find((x) => x.id === f.id) : undefined;
+      const full: Folder = { id: uid(), color: "#3048d6", createdAt: now(), ...existing, ...defined(f) } as Folder;
+      await commit((w) => ({ ...w, folders: existing ? w.folders.map((x) => (x.id === full.id ? full : x)) : [...w.folders, full] }), [{ type: "folder.upsert", id: full.id, data: { name: full.name, color: full.color } }]);
+      return full;
+    },
+    deleteFolder: async (id) => {
+      // Collections inside are kept and moved to "Not in a folder"
+      await commit((w) => ({ ...w, folders: w.folders.filter((f) => f.id !== id), collections: w.collections.map((c) => (c.folderId === id ? { ...c, folderId: null } : c)) }), [{ type: "folder.delete", id }]);
+    },
+    moveCollection: async (id, folderId) => {
+      const c = wsRef.current.collections.find((x) => x.id === id);
+      if (!c) return;
+      await commit((w) => ({ ...w, collections: w.collections.map((x) => (x.id === id ? { ...x, folderId } : x)) }),
+        [{ type: "collection.upsert", id, data: { name: c.name, description: c.description, color: c.color, goal: c.goal, shared: c.shared, folderId } }]);
     },
     setCollectionPapers: async (id, add, remove) => {
       const c = wsRef.current.collections.find((x) => x.id === id);
@@ -223,7 +245,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     },
 
     upsertReminder: async (r) => {
-      const full: Reminder = { id: uid(), paperId: null, done: false, ...wsRef.current.reminders.find((x) => x.id === r.id), ...r };
+      const full: Reminder = { id: uid(), paperId: null, done: false, ...wsRef.current.reminders.find((x) => x.id === r.id), ...defined(r) } as Reminder;
       const isNew = !wsRef.current.reminders.some((x) => x.id === full.id);
       if (isNew && !ent.customReminders) throw new LimitError("Custom reminders are a Premium feature.");
       await commit((w) => ({ ...w, reminders: isNew ? [...w.reminders, full] : w.reminders.map((x) => (x.id === full.id ? full : x)) }),

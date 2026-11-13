@@ -26,6 +26,7 @@ export async function GET() {
     sb.from("activity_events").select("*").order("at", { ascending: false }).limit(500),
     sb.from("invitations").select("id,collection_id,email,role,status,collections(name)"),
   ]);
+  const folders = await sb.from("folders").select("*").order("created_at");
   const err = [papers, notes, cols].find((r) => r.error);
   if (err?.error) return NextResponse.json({ error: "Couldn't load your library" }, { status: 500 });
 
@@ -55,9 +56,10 @@ export async function GET() {
       };
     }),
     collections: (cols.data ?? []).map((c): Collection => ({
-      id: c.id, name: c.name, description: c.description, color: c.color, goal: c.goal, shared: c.shared, createdAt: c.created_at,
+      id: c.id, name: c.name, description: c.description, color: c.color, goal: c.goal, shared: c.shared, createdAt: c.created_at, folderId: c.owner_id === user.id ? c.folder_id : null,
       paperIds: (cps.data ?? []).filter((x) => x.collection_id === c.id).map((x) => x.paper_id),
     })),
+    folders: (folders.data ?? []).map((f) => ({ id: f.id, name: f.name, color: f.color, createdAt: f.created_at })),
     members: {},
     comments: (comments.data ?? []).map((c) => ({ id: c.id, paperId: c.paper_id, author: c.author_name || "Member", body: c.body, createdAt: c.created_at })),
     activity: (activity.data ?? []).map((a) => ({ id: a.id, paperId: a.paper_id, kind: a.kind, message: a.message, at: a.at })),

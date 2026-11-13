@@ -85,9 +85,9 @@ export function sampleWorkspace(): Workspace {
   });
 
   const collections = [
-    { id: "c1", name: "Thesis: Trust in AI assistants", description: "Core reading for chapter 2 literature review.", color: "#3048d6", paperIds: ["p1", "p3", "p6", "p9", "p10"], shared: false, goal: 5, createdAt: daysAgo(30) },
+    { id: "c1", folderId: "f1", name: "Thesis: Trust in AI assistants", description: "Core reading for chapter 2 literature review.", color: "#3048d6", paperIds: ["p1", "p3", "p6", "p9", "p10"], shared: false, goal: 5, createdAt: daysAgo(30) },
     { id: "c2", name: "LLM interaction reading group", description: "Weekly lab reading group — shared project.", color: "#0f8a63", paperIds: ["p4", "p5", "p12", "p13"], shared: true, goal: 4, createdAt: daysAgo(25) },
-    { id: "c3", name: "Responsible AI documentation", description: "Papers on documenting models and datasets.", color: "#a85f00", paperIds: ["p7", "p8", "p3"], shared: false, goal: null, createdAt: daysAgo(12) },
+    { id: "c3", folderId: "f1", name: "Responsible AI documentation", description: "Papers on documenting models and datasets.", color: "#a85f00", paperIds: ["p7", "p8", "p3"], shared: false, goal: null, createdAt: daysAgo(12) },
   ];
 
   const activity = [
@@ -110,6 +110,7 @@ export function sampleWorkspace(): Workspace {
     subscriptionStatus: "active",
     papers,
     collections,
+    folders: [{ id: "f1", name: "PhD thesis", color: "#3048d6", createdAt: daysAgo(31) }, { id: "f2", name: "Teaching: HCI seminar", color: "#0f8a63", createdAt: daysAgo(5) }],
     members: {
       c2: [
         { email: "you@example.com", name: "You", role: "owner", status: "active" },
@@ -136,6 +137,6 @@ export function emptyWorkspace(name = ""): Workspace {
     profile: { name, role: null, interests: [], onboarded: false, weeklyGoal: 3, theme: "light", reduceMotion: false, notifyReminders: true, notifyComments: true },
     plan: "standard",
     subscriptionStatus: "none",
-    papers: [], collections: [], members: {}, comments: [], activity: [], reminders: [], savedViews: [], invitations: [],
+    papers: [], collections: [], folders: [], members: {}, comments: [], activity: [], reminders: [], savedViews: [], invitations: [],
   };
 }
