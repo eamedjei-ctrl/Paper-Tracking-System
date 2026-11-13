@@ -75,6 +75,7 @@ function paperData(p: Paper) {
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<Mode>("loading");
   const [ws, setWs] = useState<Workspace>(() => emptyWorkspace());
+  // Light is the default theme; dark is opt-in from Settings.
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const modeRef = useRef(mode);
@@ -95,7 +96,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     const raw = typeof window !== "undefined" ? localStorage.getItem(DEMO_KEY) : null;
     if (raw) {
-      try { setWs(JSON.parse(raw)); setMode("demo"); return; } catch { localStorage.removeItem(DEMO_KEY); }
+      try { const w = JSON.parse(raw) as Workspace; if (w.profile.theme === "system") w.profile.theme = "light"; setWs(w); setMode("demo"); return; } catch { localStorage.removeItem(DEMO_KEY); }
     }
     setMode("signed_out");
   }, []);

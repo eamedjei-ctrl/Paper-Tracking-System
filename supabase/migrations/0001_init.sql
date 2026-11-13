@@ -9,7 +9,7 @@ create table public.profiles (
   interests text[] not null default '{}',
   onboarded boolean not null default false,
   weekly_goal int not null default 3 check (weekly_goal between 1 and 100),
-  theme text not null default 'system' check (theme in ('system','light','dark')),
+  theme text not null default 'light' check (theme in ('system','light','dark')),
   reduce_motion boolean not null default false,
   notify_reminders boolean not null default true,
   notify_comments boolean not null default true,

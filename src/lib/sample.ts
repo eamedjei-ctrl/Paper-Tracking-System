@@ -105,7 +105,7 @@ export function sampleWorkspace(): Workspace {
   const inDays = (d: number) => { const t = new Date(); t.setDate(t.getDate() + d); t.setHours(9, 0, 0, 0); return t.toISOString(); };
 
   return {
-    profile: { name: "Demo Researcher", role: "student", interests: ["Human-computer interaction", "Trustworthy AI"], onboarded: true, weeklyGoal: 4, theme: "system", reduceMotion: false, notifyReminders: true, notifyComments: true },
+    profile: { name: "Demo Researcher", role: "student", interests: ["Human-computer interaction", "Trustworthy AI"], onboarded: true, weeklyGoal: 4, theme: "light", reduceMotion: false, notifyReminders: true, notifyComments: true },
     plan: "premium",
     subscriptionStatus: "active",
     papers,
@@ -133,7 +133,7 @@ export function sampleWorkspace(): Workspace {
 
 export function emptyWorkspace(name = ""): Workspace {
   return {
-    profile: { name, role: null, interests: [], onboarded: false, weeklyGoal: 3, theme: "system", reduceMotion: false, notifyReminders: true, notifyComments: true },
+    profile: { name, role: null, interests: [], onboarded: false, weeklyGoal: 3, theme: "light", reduceMotion: false, notifyReminders: true, notifyComments: true },
     plan: "standard",
     subscriptionStatus: "none",
     papers: [], collections: [], members: {}, comments: [], activity: [], reminders: [], savedViews: [], invitations: [],
