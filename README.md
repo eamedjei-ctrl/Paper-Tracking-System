@@ -59,3 +59,24 @@ Limits are defined in one place, `src/lib/plans.ts`. They are enforced on the se
 - Drag-reordering inside a collection isn't persisted yet. The `collection_papers.position` column exists for it.
 - Reminder emails and invitation emails are not sent. The notification preferences are stored, but no mail job exists yet.
 - Collaborators can read shared paper metadata and comment. Editing another member's paper (including review assignment) is restricted to the paper's owner by RLS.
+
+## Admin panel
+
+`/admin/login` leads to the Control Center, which has five pages: **Overview, Users, Activity, Subscriptions** and **Audit log**.
+
+- **Without Supabase:** **Open admin demo** loads 24 fictional accounts stored in your browser. Blocking there affects nobody real.
+- **With Supabase:**
+  1. Run `supabase/migrations/0003_admin.sql`. It creates the `admins` table, adds block fields to `profiles` and creates the `admin_audit` table.
+  2. Make yourself an admin by running this in the SQL editor:
+     ```sql
+     insert into public.admins (user_id, role) select id, 'owner' from auth.users where email = 'you@example.com';
+     ```
+  3. Set `SUPABASE_SERVICE_ROLE_KEY`. Admin routes need it, and they check admin membership on the server for every request.
+- **What blocking does:**
+  - Bans the user in Supabase Auth, which stops new sign-ins and token refresh.
+  - Sets `profiles.blocked_at`, so every app API request from that user is refused straight away.
+  - Records the action with its reason in `admin_audit`.
+  - The user's data is kept, not deleted.
+  - Users can't clear the block fields themselves; a database trigger prevents it.
+  - Admins can't block themselves, and only the `owner` can block another admin.
+- **Privacy:** admins see account details, usage counts and activity types. They never see the text of notes, summaries or PDFs.
