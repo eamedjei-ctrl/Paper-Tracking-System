@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --paper: #faf8f4;
+  --stone: #f1ede6;
+  --card: #ffffff;
+  --ink: #1b1d26;
+  --ink-2: #4a4d5a;
+  --ink-3: #6e7180;
+  --line: #e4dfd5;
+  --accent: #3048d6;
+  --accent-soft: #e8ebfc;
+  --accent-ink: #ffffff;
+  --mint: #0f8a63;
+  --mint-soft: #e2f4ec;
+  --amber: #a85f00;
+  --amber-soft: #fbf0dc;
+  --rose: #b4233c;
+  --rose-soft: #fbe6e9;
+}
+.dark {
+  --paper: #14151b;
+  --stone: #1b1d25;
+  --card: #1f212b;
+  --ink: #eceae4;
+  --ink-2: #c3c1bb;
+  --ink-3: #9a9890;
+  --line: #2f323e;
+  --accent: #8c9bff;
+  --accent-soft: #262c52;
+  --accent-ink: #10132a;
+  --mint: #5fd3a6;
+  --mint-soft: #173328;
+  --amber: #f0b660;
+  --amber-soft: #3a2c14;
+  --rose: #ff8a9c;
+  --rose-soft: #3d1c22;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-stone: var(--stone);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-rose: var(--rose);
+  --color-rose-soft: var(--rose-soft);
+  --font-sans: var(--font-sans-face);
+  --font-serif: var(--font-serif-face);
+  --font-mono: var(--font-mono-face);
+  --radius-card: 14px;
+  --shadow-card: 0 1px 2px rgb(27 29 38 / 0.04), 0 2px 8px rgb(27 29 38 / 0.04);
+  --shadow-lift: 0 2px 4px rgb(27 29 38 / 0.05), 0 10px 24px rgb(27 29 38 / 0.08);
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+}
+
+html { background: var(--paper); color: var(--ink); }
+body { font-family: var(--font-sans); }
+::selection { background: var(--accent-soft); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--stone) 25%, var(--line) 50%, var(--stone) 75%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
