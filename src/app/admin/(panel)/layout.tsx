@@ -25,7 +25,7 @@ function Nav({ onNav }: { onNav?: () => void }) {
         const active = href === "/admin" ? path === "/admin" : path.startsWith(href);
         return (
           <Link key={href} href={href} onClick={onNav} aria-current={active ? "page" : undefined} className={cn("relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium", active ? "text-ink" : "text-ink-3 hover:bg-stone hover:text-ink")}>
-            {active && <motion.span layoutId="admin-nav" className="absolute inset-0 rounded-lg bg-card ring-1 ring-line" transition={{ type: "spring", stiffness: 500, damping: 40 }} />}
+            {active && <motion.span layoutId="admin-nav" className="absolute inset-0 rounded-lg bg-card shadow-[var(--shadow-card)] ring-1 ring-line" transition={{ type: "spring", stiffness: 500, damping: 40 }} />}
             <Icon className={cn("relative size-[18px]", active && "text-accent")} aria-hidden /><span className="relative">{label}</span>
           </Link>
         );
@@ -40,7 +40,7 @@ export default function AdminPanelLayout({ children }: { children: React.ReactNo
   const [drawer, setDrawer] = useState(false);
   useEffect(() => { if (mode === "signed_out") router.replace("/admin/login"); }, [mode, router]);
 
-  if (mode === "loading" || mode === "signed_out") return <div className="dark min-h-dvh bg-paper p-8"><Skeleton className="h-8 w-48" /><div className="mt-8 grid gap-4 sm:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-28" />)}</div></div>;
+  if (mode === "loading" || mode === "signed_out") return <div className="min-h-dvh bg-paper p-8"><Skeleton className="h-8 w-48" /><div className="mt-8 grid gap-4 sm:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-28" />)}</div></div>;
 
   const footer = (
     <div className="border-t border-line pt-4">
@@ -53,7 +53,7 @@ export default function AdminPanelLayout({ children }: { children: React.ReactNo
   );
 
   return (
-    <div className="dark flex min-h-dvh bg-paper text-ink">
+    <div className="flex min-h-dvh bg-paper text-ink">
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-stone/60 p-4 lg:flex">
         <div className="mb-1 px-2"><Logo /></div>
         <p className="mb-6 px-2 text-[11px] font-semibold uppercase tracking-widest text-accent">Admin</p>
@@ -66,8 +66,8 @@ export default function AdminPanelLayout({ children }: { children: React.ReactNo
         <span className="w-9" />
       </div>
       <AnimatePresence>{drawer && (
-        <div className="dark fixed inset-0 z-50 lg:hidden">
-          <motion.div className="absolute inset-0 bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDrawer(false)} />
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <motion.div className="absolute inset-0 bg-ink/30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDrawer(false)} />
           <motion.aside role="dialog" aria-modal="true" aria-label="Admin navigation" initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ duration: 0.22 }} className="absolute inset-y-0 left-0 flex w-72 flex-col bg-paper p-4">
             <div className="mb-6 flex items-center justify-between"><Logo /><button onClick={() => setDrawer(false)} aria-label="Close" className="rounded-md p-1.5 hover:bg-stone"><X className="size-5" /></button></div>
             <Nav onNav={() => setDrawer(false)} /><div className="mt-auto">{footer}</div>

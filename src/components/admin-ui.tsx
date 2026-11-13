@@ -7,7 +7,7 @@ import { cn } from "@/lib/util";
 
 export function Stat({ label, value, hint, tone }: { label: string; value: React.ReactNode; hint?: string; tone?: "rose" | "mint" | "amber" }) {
   return (
-    <div className="rounded-[var(--radius-card)] border border-line bg-card p-4">
+    <div className="rounded-[var(--radius-card)] border border-line bg-card p-4 shadow-[var(--shadow-card)]">
       <p className="text-xs font-medium uppercase tracking-wide text-ink-3">{label}</p>
       <p className={cn("mt-2 font-serif text-3xl font-semibold tabular-nums", tone === "rose" && "text-rose", tone === "mint" && "text-mint", tone === "amber" && "text-amber")}>{value}</p>
       {hint && <p className="mt-0.5 text-xs text-ink-3">{hint}</p>}

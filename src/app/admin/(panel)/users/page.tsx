@@ -71,10 +71,10 @@ export default function AdminUsers() {
 
       <AnimatePresence>
         {current && (
-          <div className="dark fixed inset-0 z-40">
-            <motion.div className="absolute inset-0 bg-black/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSel(null)} />
+          <div className="fixed inset-0 z-40">
+            <motion.div className="absolute inset-0 bg-ink/30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSel(null)} />
             <motion.aside role="dialog" aria-modal="true" aria-label={`Details for ${current.email}`} initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col overflow-y-auto border-l border-line bg-paper p-6 text-ink">
+              className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col overflow-y-auto border-l border-line bg-paper p-6 text-ink shadow-[var(--shadow-lift)]">
               <div className="flex items-start justify-between gap-3"><div><h2 className="font-serif text-2xl font-semibold">{current.name || current.email}</h2><p className="text-sm text-ink-3">{current.email}</p></div><button onClick={() => setSel(null)} aria-label="Close details" className="rounded-md p-1.5 hover:bg-stone"><X className="size-5" /></button></div>
               <div className="mt-3"><StatusBadge u={current} /></div>
               {current.blockedAt && <p className="mt-3 rounded-xl bg-rose-soft p-3 text-sm text-rose">Blocked {relTime(current.blockedAt)}{current.blockedReason && ` — ${current.blockedReason}`}</p>}
@@ -89,7 +89,7 @@ export default function AdminUsers() {
           </div>
         )}
       </AnimatePresence>
-      <div className="dark"><BlockDialog user={blocking} onClose={() => setBlocking(null)} /></div>
+      <div><BlockDialog user={blocking} onClose={() => setBlocking(null)} /></div>
     </div>
   );
 }
