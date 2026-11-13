@@ -4,19 +4,25 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
-import { LayoutDashboard, Library, Plus, FolderKanban, Settings, Sparkles, Menu as MenuIcon, X, Search, LogOut, Cloud, CloudOff, Loader2, Check, FlaskConical } from "lucide-react";
+import { LayoutDashboard, Library, Plus, FolderKanban, Settings, Sparkles, Bell, Bookmark, Users, Quote, Workflow, Menu as MenuIcon, X, Search, LogOut, Cloud, CloudOff, Loader2, Check, FlaskConical } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/util";
 import { dur, ease, pop } from "@/lib/motion";
 import { Logo } from "./logo";
 import { PLANS, effectivePlan } from "@/lib/plans";
 import { StatusPill, Skeleton } from "./ui";
+import { WorkflowBadge } from "./workflow-badge";
 
 const NAV = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/library", label: "Library", icon: Library },
   { href: "/app/add", label: "Add paper", icon: Plus },
   { href: "/app/collections", label: "Collections", icon: FolderKanban },
+  { href: "/app/views", label: "Saved views", icon: Bookmark },
+  { href: "/app/reminders", label: "Reminders", icon: Bell },
+  { href: "/app/shared", label: "Shared projects", icon: Users },
+  { href: "/app/export", label: "Cite & export", icon: Quote },
+  { href: "/app/workflow", label: "Workflow", icon: Workflow },
   { href: "/app/plans", label: "Plans & billing", icon: Sparkles },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
@@ -178,8 +184,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <button onClick={() => setCmd(true)} className="mb-4 flex items-center gap-2 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink-3 hover:text-ink">
           <Search className="size-4" aria-hidden /> Search<kbd className="ml-auto rounded border border-line px-1 text-[11px]">⌘K</kbd>
         </button>
-        <NavList />
-        <div className="mt-auto"><SidebarFooter /></div>
+        <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1"><NavList /></div>
+        <div className="mt-3"><SidebarFooter /></div>
       </aside>
 
       {/* Mobile top bar */}
@@ -230,11 +236,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function PageHeader({ title, description, actions, eyebrow }: { title: string; description?: string; actions?: React.ReactNode; eyebrow?: React.ReactNode }) {
+export function PageHeader({ title, description, actions, eyebrow, step }: { title: string; description?: string; actions?: React.ReactNode; eyebrow?: React.ReactNode; step?: string }) {
   return (
     <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        {eyebrow && <div className="mb-1.5">{eyebrow}</div>}
+        {(eyebrow || step) && <div className="mb-2 flex flex-wrap items-center gap-2">{step && <WorkflowBadge id={step} />}{eyebrow}</div>}
         <h1 className="font-serif text-[28px] font-semibold leading-tight tracking-tight sm:text-3xl">{title}</h1>
         {description && <p className="mt-1 text-sm text-ink-3">{description}</p>}
       </div>

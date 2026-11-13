@@ -9,6 +9,7 @@ import { useStore } from "@/lib/store";
 import { Button, Card, Dialog, Menu, MenuItem, PriorityBadge, ProgressBar, StatusPill, Tag, inputCls, useToast, EmptyState } from "@/components/ui";
 import { PaperForm, draftFromPaper, draftToPaper, validateDraft, type Draft } from "@/components/paper-form";
 import { PdfPanel } from "@/components/pdf-panel";
+import { WorkflowBadge } from "@/components/workflow-badge";
 import { formatCitation, missingCitationFields, toBibtex, toRis, citeKey, type CitationStyle } from "@/lib/citations";
 import { STATUS_LABEL, PRIORITY_LABEL, type Paper, type ReadingStatus, type Priority } from "@/lib/types";
 import { cn, relTime, uid, download } from "@/lib/util";
@@ -148,6 +149,7 @@ export default function PaperPage({ params }: { params: Promise<{ id: string }> 
 
       <header className="mb-6">
         <div className="mb-3 flex flex-wrap items-center gap-2">
+          <WorkflowBadge id={paper.status === "in_progress" ? "notes" : "paper"} />
           <motion.span layoutId={`paper-${paper.id}`} className="inline-flex"><StatusPill status={paper.status} /></motion.span>
           <PriorityBadge p={paper.priority} />
           {paper.metadataSource !== "manual" && <span className="text-xs text-ink-3">Metadata from {paper.metadataSource === "crossref" ? "Crossref" : paper.metadataSource === "sample" ? "demo sample" : paper.metadataSource.toUpperCase()}, reviewed by you</span>}

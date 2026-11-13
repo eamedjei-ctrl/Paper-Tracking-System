@@ -49,7 +49,7 @@ export default function Settings() {
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title="Settings" />
+      <PageHeader step="export" title="Settings" description="Profile, preferences and your data." />
       <div className="space-y-6">
         <Card className="p-5">
           <h2 className="mb-4 font-serif text-lg font-semibold">Profile</h2>

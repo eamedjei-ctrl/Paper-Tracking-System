@@ -143,7 +143,7 @@ export default function Landing() {
       <footer className="border-t border-line px-4 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-ink-3 sm:flex-row">
           <Logo />
-          <nav aria-label="Footer" className="flex gap-5"><a href="#features" className="hover:text-ink">Features</a><a href="#plans" className="hover:text-ink">Plans</a><Link href="/auth/sign-in" className="hover:text-ink">Sign in</Link><button onClick={demo} className="hover:text-ink">Demo</button></nav>
+          <nav aria-label="Footer" className="flex gap-5"><a href="#features" className="hover:text-ink">Features</a><a href="#plans" className="hover:text-ink">Plans</a><a href="/PaperTrail-Workflow.pdf" target="_blank" className="hover:text-ink">How it works (PDF)</a><Link href="/auth/sign-in" className="hover:text-ink">Sign in</Link><button onClick={demo} className="hover:text-ink">Demo</button></nav>
         </div>
       </footer>
     </div>

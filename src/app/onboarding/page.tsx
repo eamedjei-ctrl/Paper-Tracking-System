@@ -34,7 +34,8 @@ export default function Onboarding() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-stone/40 px-4 py-10">
-      <Logo className="mb-8" />
+      <Logo className="mb-2" />
+      <a href="/PaperTrail-Workflow.pdf" target="_blank" className="mb-6 text-xs text-ink-3 underline hover:text-ink">Workflow step 4 · Onboarding</a>
       <Card className="w-full max-w-lg overflow-hidden p-6">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex gap-1.5" aria-label={`Step ${step + 1} of 3`}>{[0, 1, 2].map((i) => <span key={i} className={cn("h-1.5 w-8 rounded-full transition-colors", i <= step ? "bg-accent" : "bg-line")} />)}</div>

@@ -20,7 +20,7 @@ function Inner() {
   const pending = ws.invitations.filter((i) => i.status === "pending");
   return (
     <div>
-      <PageHeader title="Collections & projects" description={`${ws.collections.length}${ent.maxCollections ? ` of ${ent.maxCollections}` : ""} collections`} actions={<Button variant="primary" onClick={() => setOpen(true)}><FolderPlus className="size-4" aria-hidden />New collection</Button>} />
+      <PageHeader step="collections" title="Collections & projects" description={`${ws.collections.length}${ent.maxCollections ? ` of ${ent.maxCollections}` : ""} collections`} actions={<Button variant="primary" onClick={() => setOpen(true)}><FolderPlus className="size-4" aria-hidden />New collection</Button>} />
       {pending.length > 0 && (
         <Card className="mb-6 p-4">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Mail className="size-4" aria-hidden />Invitations</h2>

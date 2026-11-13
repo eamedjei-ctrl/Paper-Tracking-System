@@ -94,7 +94,7 @@ function LibraryInner() {
 
   return (
     <div>
-      <PageHeader title="Library" description={`${ws.papers.length} papers${list.length !== ws.papers.length ? ` · ${list.length} shown` : ""}`}
+      <PageHeader step="library" title="Library" description={`${ws.papers.length} papers${list.length !== ws.papers.length ? ` · ${list.length} shown` : ""}`}
         actions={<Link href="/app/add"><Button variant="primary"><Plus className="size-4" aria-hidden />Add paper</Button></Link>} />
 
       {/* Search + controls */}

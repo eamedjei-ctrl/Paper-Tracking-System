@@ -34,7 +34,7 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
   return (
     <div>
       <Link href="/app/collections" className="mb-4 inline-flex items-center gap-1 text-sm text-ink-3 hover:text-ink"><ArrowLeft className="size-4" aria-hidden />Collections</Link>
-      <PageHeader eyebrow={<span className="flex items-center gap-2 text-xs text-ink-3"><span className="h-1.5 w-8 rounded-full" style={{ background: c.color }} aria-hidden />{c.shared ? "Shared project" : "Private collection"}</span>}
+      <PageHeader step={c.shared ? "shared" : "collections"} eyebrow={<span className="flex items-center gap-2 text-xs text-ink-3"><span className="h-1.5 w-8 rounded-full" style={{ background: c.color }} aria-hidden />{c.shared ? "Shared project" : "Private collection"}</span>}
         title={c.name} description={c.description}
         actions={<>
           <Button onClick={() => setAdding(true)} variant="primary"><Plus className="size-4" aria-hidden />Add papers</Button>

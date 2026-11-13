@@ -23,7 +23,7 @@ function AddInner() {
   ];
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="Add papers" description="Add one paper by hand or DOI, or bring in references from another tool." />
+      <PageHeader step="add" title="Add papers" description="Add one paper by hand or DOI, or bring in references from another tool." />
       <div role="tablist" aria-label="Add method" className="mb-5 flex gap-1 overflow-x-auto rounded-xl border border-line bg-stone/60 p-1">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button key={id} role="tab" id={`tab-${id}`} aria-selected={tab === id} aria-controls={`panel-${id}`} onClick={() => setTab(id)}

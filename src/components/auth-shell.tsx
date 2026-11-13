@@ -53,7 +53,7 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
           <div className="mt-6">{children}</div>
           {footer && <div className="mt-8 text-center text-sm text-ink-3">{footer}</div>}
         </main>
-        <p className="text-center text-xs text-ink-3">Your research stays yours — export it any time.</p>
+        <p className="text-center text-xs text-ink-3">Step 3 of the <a href="/PaperTrail-Workflow.pdf" target="_blank" className="underline hover:text-ink">PaperTrail workflow</a> · Your research stays yours — export it any time.</p>
       </div>
       <Showcase />
     </div>

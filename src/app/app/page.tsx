@@ -87,7 +87,7 @@ export default function Dashboard() {
   return (
     <motion.div initial={firstVisit ? "hidden" : false} animate="show" variants={{ show: { transition: { staggerChildren: stagger * 1.6 } } }}>
       <motion.div variants={sectionV}>
-        <PageHeader eyebrow={mode === "demo" ? <DemoBadge /> : undefined} title={`${greet}${first ? `, ${first}` : ""}`}
+        <PageHeader step="dashboard" eyebrow={mode === "demo" ? <DemoBadge /> : undefined} title={`${greet}${first ? `, ${first}` : ""}`}
           description={ws.papers.length ? `You have ${counts.unread} papers waiting and ${counts.in_progress} in progress.` : "Let's start your library."}
           actions={<>
             <Link href="/app/add"><Button variant="primary"><Plus className="size-4" aria-hidden />Add paper</Button></Link>
