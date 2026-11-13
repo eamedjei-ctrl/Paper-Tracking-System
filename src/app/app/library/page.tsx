@@ -99,17 +99,17 @@ function LibraryInner() {
 
       {/* Search + controls */}
       <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="relative flex-1">
+        <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" aria-hidden />
           <input value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} placeholder="Search title, author, DOI, venue, abstract, notes or tag" aria-label="Search library" className={cn(inputCls, "h-10 pl-9")} />
           {q && <button onClick={() => setQ("")} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-3 hover:text-ink"><X className="size-4" /></button>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex min-w-0 gap-2">
           <Button onClick={() => setPanel((o) => !o)} aria-expanded={panel} aria-controls="filters" className="flex-1 sm:flex-none">
             <SlidersHorizontal className="size-4" aria-hidden />Filters{activeCount > 0 && <span className="rounded-full bg-accent px-1.5 text-[11px] text-accent-ink">{activeCount}</span>}
           </Button>
           <label className="sr-only" htmlFor="sort">Sort by</label>
-          <select id="sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} className={cn(inputCls, "h-10 w-auto flex-1 sm:flex-none")}>
+          <select id="sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} className={cn(inputCls.replace("w-full ", ""), "h-10 min-w-0 flex-1 sm:w-44 sm:flex-none")}>
             <option value="added">Date added</option><option value="title">Title</option><option value="year">Publication year</option><option value="priority">Priority</option>
           </select>
           <div className="flex rounded-[10px] border border-line bg-card p-0.5" role="group" aria-label="View mode">
