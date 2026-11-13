@@ -5,6 +5,8 @@ import { MailCheck } from "lucide-react";
 import { AuthShell, friendlyAuthError } from "@/components/auth-shell";
 import { Button, Field, inputCls } from "@/components/ui";
 import { supabaseBrowser } from "@/lib/supabase/browser";
+import { isSupabaseConfigured } from "@/lib/store";
+import { NOT_CONFIGURED } from "@/components/auth-shell";
 
 export default function SignUp() {
   const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [pw, setPw] = useState("");
@@ -20,6 +22,7 @@ export default function SignUp() {
           if (!/^\S+@\S+\.\S+$/.test(email)) v.email = "Enter a valid email address.";
           if (pw.length < 8) v.pw = "Use at least 8 characters.";
           setErrs(v); if (Object.keys(v).length) return;
+          if (!isSupabaseConfigured) { setErrs({ form: NOT_CONFIGURED }); return; }
           setBusy(true);
           const { data, error } = await supabaseBrowser().auth.signUp({ email, password: pw, options: { data: { name: name.trim() }, emailRedirectTo: `${location.origin}/auth/callback?next=/onboarding` } });
           setBusy(false);

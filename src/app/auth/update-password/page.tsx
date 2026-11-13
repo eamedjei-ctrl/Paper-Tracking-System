@@ -3,6 +3,8 @@ import { useState } from "react";
 import { AuthShell } from "@/components/auth-shell";
 import { Button, Field, inputCls } from "@/components/ui";
 import { supabaseBrowser } from "@/lib/supabase/browser";
+import { isSupabaseConfigured } from "@/lib/store";
+import { NOT_CONFIGURED } from "@/components/auth-shell";
 
 export default function UpdatePassword() {
   const [pw, setPw] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
@@ -11,7 +13,8 @@ export default function UpdatePassword() {
       <form noValidate className="space-y-4" onSubmit={async (e) => {
         e.preventDefault(); setErr("");
         if (pw.length < 8) return setErr("Use at least 8 characters.");
-        setBusy(true);
+        if (!isSupabaseConfigured) { setErr(NOT_CONFIGURED); return; }
+          setBusy(true);
         const { error } = await supabaseBrowser().auth.updateUser({ password: pw });
         setBusy(false);
         if (error) return setErr("This reset link has expired. Request a new one.");
