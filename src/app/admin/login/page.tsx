@@ -8,26 +8,19 @@ import { Logo } from "@/components/logo";
 import { PasswordInput } from "@/components/auth-shell";
 import { Button, inputCls } from "@/components/ui";
 import { useAdmin } from "@/lib/admin";
-import { api, ApiError, backendEnabled } from "@/lib/api";
 import { cn } from "@/lib/util";
 
 export default function AdminLogin() {
   const { mode, enterDemo } = useAdmin();
   const router = useRouter();
   const [email, setEmail] = useState(""); const [pw, setPw] = useState("");
-  const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
-  useEffect(() => { if (mode === "demo" || mode === "cloud") router.replace("/admin"); }, [mode, router]);
+  const [err, setErr] = useState(""); const busy = false;
+  useEffect(() => { if (mode === "demo") router.replace("/admin"); }, [mode, router]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setErr("");
     if (!/^\S+@\S+\.\S+$/.test(email) || !pw) return setErr("Enter your admin email and password.");
-    if (!backendEnabled) return setErr("Accounts aren't connected on this deployment, so admin sign-in isn't available. Use the admin demo below.");
-    setBusy(true);
-    try { await api("/auth/sign-in", { method: "POST", json: { email: email.trim(), password: pw } }); }
-    catch (e2) { setBusy(false); return setErr(e2 instanceof ApiError && e2.status === 401 ? "That email and password don't match." : e2 instanceof Error ? e2.message : "Sign-in failed"); }
-    try { await api("/admin/me"); }
-    catch (e2) { await api("/auth/sign-out", { method: "POST" }).catch(() => {}); setBusy(false); return setErr(e2 instanceof ApiError && e2.status === 403 ? "This account doesn't have admin access." : "The admin service isn't available."); }
-    window.location.href = "/admin";
+    setErr("Admin accounts aren't available in this version — it runs entirely in your browser. Use the admin demo below.");
   };
 
   return (

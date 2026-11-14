@@ -2,7 +2,6 @@
 import { useRef, useState } from "react";
 import { FileText, Upload, ExternalLink, Trash2, AlertTriangle } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { api, apiUrl } from "@/lib/api";
 import { Button, Card, useToast } from "./ui";
 import { formatBytes } from "@/lib/util";
 import { MAX_PDF_BYTES } from "@/lib/plans";
@@ -20,7 +19,7 @@ export function PdfPanel({ paper }: { paper: Paper }) {
   const { mode, updatePapers, ws, ent } = useStore();
   const toast = useToast();
   const ref = useRef<HTMLInputElement>(null);
-  const [progress, setProgress] = useState<number | null>(null);
+  const progress = null as number | null;
   const [err, setErr] = useState("");
   const used = ws.papers.reduce((s, p) => s + (p.pdf?.size ?? 0), 0);
 
@@ -30,46 +29,17 @@ export function PdfPanel({ paper }: { paper: Paper }) {
     if (f.size > MAX_PDF_BYTES) return setErr(`That file is ${formatBytes(f.size)}. The limit is ${formatBytes(MAX_PDF_BYTES)} per PDF.`);
     if (used + f.size > ent.storageBytes) return setErr("This upload would exceed your storage allowance. Remove a PDF or upgrade your plan.");
     if (!(await looksLikePdf(f))) return setErr("That file isn't a valid PDF.");
-    if (mode === "demo") {
-      demoBlobs.set(paper.id, URL.createObjectURL(f));
+    demoBlobs.set(paper.id, URL.createObjectURL(f));
       await updatePapers([paper.id], { pdf: { name: f.name, size: f.size, path: "demo-session" } });
       toast("PDF attached for this session");
-      return;
-    }
-    setProgress(0);
-    const fd = new FormData(); fd.append("file", f);
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", apiUrl(`/papers/${paper.id}/pdf`));
-    xhr.withCredentials = true;
-    xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
-    xhr.onload = async () => {
-      setProgress(null);
-      if (xhr.status >= 200 && xhr.status < 300) {
-        const j = JSON.parse(xhr.responseText);
-        await updatePapers([paper.id], { pdf: j.pdf }).catch(() => {});
-        toast("PDF uploaded");
-      } else {
-        try { setErr(JSON.parse(xhr.responseText).error); } catch { setErr("Upload failed. Please try again."); }
-      }
-    };
-    xhr.onerror = () => { setProgress(null); setErr("Network error during upload. Check your connection and try again."); };
-    xhr.send(fd);
   };
 
   const open = async () => {
-    if (mode === "demo") {
-      const u = demoBlobs.get(paper.id);
+    const u = demoBlobs.get(paper.id);
       if (u) window.open(u, "_blank", "noopener"); else setErr("Demo PDFs are kept only for the browser session in which they were attached. Attach it again to view.");
-      return;
-    }
-    try { const j = await api<{ url: string }>(`/papers/${paper.id}/pdf`); window.open(j.url, "_blank", "noopener"); }
-    catch (e) { setErr(e instanceof Error ? e.message : "Couldn't open PDF"); }
   };
 
   const remove = async () => {
-    if (mode === "cloud") {
-      try { await api(`/papers/${paper.id}/pdf`, { method: "DELETE" }); } catch { return setErr("Couldn't remove the PDF."); }
-    }
     demoBlobs.delete(paper.id);
     await updatePapers([paper.id], { pdf: null });
     toast("PDF removed");

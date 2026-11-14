@@ -6,10 +6,10 @@ import { motion } from "motion/react";
 import { Eye, EyeOff, FlaskConical, Info } from "lucide-react";
 import { Logo } from "./logo";
 import { Button, StatusPill, ProgressBar, inputCls } from "./ui";
-import { useStore, backendEnabled } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { cn } from "@/lib/util";
 
-export const NOT_CONFIGURED = "Accounts aren't connected on this deployment yet, so sign-in isn't available. You can explore everything in the demo meanwhile.";
+export const NOT_CONFIGURED = "Accounts aren't available in this version of PaperTrail — it runs entirely in your browser. Use the demo to explore everything.";
 
 function Showcase() {
   return (
@@ -44,10 +44,11 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
         <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
           <h1 className="font-serif text-3xl font-semibold tracking-tight">{title}</h1>
           {subtitle && <p className="mt-1.5 text-sm text-ink-3">{subtitle}</p>}
-          {!backendEnabled && (
+          {(
+
             <div className="mt-6 flex gap-2.5 rounded-xl border border-amber/30 bg-amber-soft/70 p-3 text-[13px] text-ink-2">
               <Info className="mt-0.5 size-4 shrink-0 text-amber" aria-hidden />
-              <span>Accounts aren't connected yet. <button className="font-semibold text-accent underline underline-offset-2" onClick={() => { enterDemo(); router.push("/app"); }}>Explore the demo</button> instead.</span>
+              <span>Accounts aren't available in this version. <button className="font-semibold text-accent underline underline-offset-2" onClick={() => { enterDemo(); router.push("/app"); }}>Explore the demo</button> instead.</span>
             </div>
           )}
           <div className="mt-6">{children}</div>

@@ -63,7 +63,7 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
           )}
           {filtering && papers.length === 0 ? <p className="rounded-xl border border-dashed border-line py-8 text-center text-sm text-ink-3">No papers in this collection match.</p> : allPapers.length === 0 ? <EmptyState title="This collection is empty" body="Add papers from your library to start tracking progress here." action={<Button variant="primary" onClick={() => setAdding(true)}>Add papers</Button>} /> : (
             <>
-              <p className="mb-2 text-xs text-ink-3">{filtering ? `${papers.length} of ${allPapers.length} papers shown · clear the search to reorder` : `Drag to set your reading order${mode === "cloud" ? " (order is kept for this session)" : ""}.`}</p>
+              <p className="mb-2 text-xs text-ink-3">{filtering ? `${papers.length} of ${allPapers.length} papers shown · clear the search to reorder` : `Drag to set your reading order.`}</p>
               <LayoutGroup>
                 <Reorder.Group axis="y" values={filtering ? papers.map((p) => p.id) : ids} onReorder={(v) => !filtering && setOrder(v)} className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-card">
                   {papers.map((p) => (

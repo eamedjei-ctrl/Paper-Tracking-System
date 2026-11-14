@@ -1,10 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
-import { FlaskConical, AlertTriangle, CreditCard } from "lucide-react";
+import { FlaskConical, AlertTriangle } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { api, backendEnabled } from "@/lib/api";
 import { PageHeader } from "@/components/shell";
-import { Button, Card, useToast } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { PlanCards } from "@/components/plan-cards";
 import { effectivePlan, PLANS } from "@/lib/plans";
 import { formatBytes } from "@/lib/util";
@@ -27,20 +25,8 @@ function Usage({ label, used, max }: { label: string; used: number; max: number 
 
 export default function Plans() {
   const { ws, ent, mode, simulatePlan } = useStore();
-  const toast = useToast();
-  const [billing, setBilling] = useState<{ configured: boolean } | null>(null);
-  const [busy, setBusy] = useState(false);
-  useEffect(() => { if (!backendEnabled) { setBilling({ configured: false }); return; } api<{ configured: boolean }>("/billing/status").then(setBilling, () => setBilling({ configured: false })); }, []);
   const plan = effectivePlan(ws.plan, ws.subscriptionStatus);
   const storage = ws.papers.reduce((s, p) => s + (p.pdf?.size ?? 0), 0);
-
-  const go = async (path: "checkout" | "portal") => {
-    setBusy(true);
-    try {
-      const j = await api<{ url: string }>(`/billing/${path}`, { method: "POST" });
-      window.location.href = j.url;
-    } catch (e) { toast(e instanceof Error ? e.message : "Billing unavailable", "error"); setBusy(false); }
-  };
 
   return (
     <div>
@@ -67,15 +53,7 @@ export default function Plans() {
                 <Button size="sm" variant="ghost" onClick={() => simulatePlan("premium", "past_due")}>Past due</Button>
               </div>
             </div>
-          ) : billing?.configured ? (
-            <div className="mt-4 flex flex-col gap-2">
-              {plan === "standard" ? <Button variant="primary" disabled={busy} onClick={() => go("checkout")}><CreditCard className="size-4" aria-hidden />Upgrade to Premium</Button>
-                : <Button disabled={busy} onClick={() => go("portal")}>Manage billing</Button>}
-              <p className="text-xs text-ink-3">Payments are handled by Stripe. Your plan updates once Stripe confirms payment.</p>
-            </div>
-          ) : (
-            <p className="mt-4 rounded-xl bg-stone p-3 text-xs text-ink-2">Billing isn't connected yet. It's provided by the backend (see docs/BACKEND_API.md → Billing).</p>
-          )}
+          ) : null}
         </Card>
       </div>
       <h2 className="mb-4 mt-10 font-serif text-xl font-semibold">Compare plans</h2>

@@ -5,16 +5,14 @@ import type { Workspace, Paper, Collection, Folder, Reminder, Profile, SavedView
 import { STATUS_LABEL } from "./types";
 import { sampleWorkspace, emptyWorkspace } from "./sample";
 import { entitlementsFor, type Entitlements } from "./plans";
-import type { Op } from "./ops";
 import { uid, now } from "./util";
 
-export type Mode = "loading" | "demo" | "cloud" | "signed_out";
+export type Mode = "loading" | "demo" | "signed_out";
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
 const DEMO_KEY = "papertrail-demo-v1";
-import { api as callApi, backendEnabled } from "./api";
-export { backendEnabled };
 
+/** Frontend-only: all data lives in this browser (demo mode). */
 export class LimitError extends Error {}
 
 /** Drop undefined keys so `{ id: undefined }` from a form never overwrites a generated id. */
@@ -73,31 +71,18 @@ function fill(p: NewPaper, id = uid()): Paper {
   };
 }
 
-function paperData(p: Paper) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id, addedAt, updatedAt, pdf, ...data } = p;
-  return data;
-}
-
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<Mode>("loading");
   const [ws, setWs] = useState<Workspace>(() => emptyWorkspace());
   // Light is the default theme; dark is opt-in from Settings.
   const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const userEmail = null as string | null;
   const modeRef = useRef(mode);
   modeRef.current = mode;
   const wsRef = useRef(ws);
   wsRef.current = ws;
 
   const load = useCallback(async () => {
-    if (backendEnabled) {
-      try {
-        const j = await callApi<{ workspace: Workspace; email: string }>("/workspace");
-        setWs({ ...j.workspace, folders: j.workspace.folders ?? [] }); setUserEmail(j.email); setMode("cloud");
-        return;
-      } catch { /* not signed in or backend down → fall through to demo / signed out */ }
-    }
     const raw = typeof window !== "undefined" ? localStorage.getItem(DEMO_KEY) : null;
     if (raw) {
       try { const w = JSON.parse(raw) as Workspace; if (w.profile.theme === "system") w.profile.theme = "light"; w.folders ??= []; setWs(w); setMode("demo"); return; } catch { localStorage.removeItem(DEMO_KEY); }
@@ -128,21 +113,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const ent = useMemo(() => entitlementsFor(ws.plan, ws.subscriptionStatus), [ws.plan, ws.subscriptionStatus]);
 
-  /** Optimistically apply locally; in cloud mode send op(s) and roll back on failure. */
-  const commit = useCallback(async (mut: (w: Workspace) => Workspace, ops: Op[]) => {
-    const prev = wsRef.current;
-    const next = mut(prev);
+  /** Apply a change to the workspace (persisted to localStorage by the effect above). */
+  const commit = useCallback(async (mut: (w: Workspace) => Workspace) => {
+    const next = mut(wsRef.current);
     wsRef.current = next;
     setWs(next);
-    if (modeRef.current !== "cloud") { setSaveState("saved"); return; }
-    setSaveState("saving");
-    try {
-      await callApi("/ops", { method: "POST", json: { ops } });
-      setSaveState("saved");
-    } catch (e) {
-      setWs(prev); wsRef.current = prev; setSaveState("error");
-      throw e;
-    }
+    setSaveState("saved");
   }, []);
 
   const log = (w: Workspace, ev: Omit<ActivityEvent, "id" | "at">): Workspace => ({ ...w, activity: [{ ...ev, id: uid(), at: now() }, ...w.activity].slice(0, 500) });
@@ -158,7 +134,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const w = wsRef.current;
       if (ent.maxPapers !== null && w.papers.length >= ent.maxPapers) throw new LimitError(`Your plan allows up to ${ent.maxPapers} papers.`);
       const p = fill(input);
-      await commit((w) => log({ ...w, papers: [p, ...w.papers] }, { paperId: p.id, kind: "added", message: `Added “${p.title}”` }), [{ type: "paper.create", id: p.id, data: paperData(p) }]);
+      await commit((w) => log({ ...w, papers: [p, ...w.papers] }, { paperId: p.id, kind: "added", message: `Added “${p.title}”` }));
       return p;
     },
     importPapers: async (inputs, source) => {
@@ -166,8 +142,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const w = wsRef.current;
       if (ent.maxPapers !== null && w.papers.length + inputs.length > ent.maxPapers) throw new LimitError("Import would exceed your paper limit.");
       const ps = inputs.map((i) => fill({ ...i, metadataSource: source }));
-      await commit((w) => log({ ...w, papers: [...ps, ...w.papers] }, { paperId: null, kind: "import", message: `Imported ${ps.length} papers from ${source.toUpperCase()}` }),
-        [{ type: "paper.import", source, items: ps.map((p) => ({ id: p.id, data: paperData(p) })) }]);
+      await commit((w) => log({ ...w, papers: [...ps, ...w.papers] }, { paperId: null, kind: "import", message: `Imported ${ps.length} papers from ${source.toUpperCase()}` }));
       return ps.length;
     },
     updatePapers: async (ids, patch, message) => {
@@ -178,19 +153,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       await commit((w) => {
         const nw = { ...w, papers: w.papers.map((p) => (set.has(p.id) ? { ...p, ...patch, updatedAt: t } : p)) };
         return message ? log(nw, { paperId: ids.length === 1 ? ids[0] : null, kind: "note", message }) : nw;
-      }, [{ type: "paper.update", ids, data }]);
+      });
     },
     setStatus: async (id, s) => {
       const p = wsRef.current.papers.find((x) => x.id === id);
       if (!p || p.status === s) return;
       const progress = s === "read" ? 100 : s === "unread" ? 0 : s === "in_progress" ? Math.max(p.progress, 10) : p.progress;
       await commit((w) => log({ ...w, papers: w.papers.map((x) => (x.id === id ? { ...x, status: s, progress, updatedAt: now() } : x)) },
-        { paperId: id, kind: "status", message: `Marked “${p.title}” as ${STATUS_LABEL[s]}` }), [{ type: "paper.update", ids: [id], data: { status: s, progress } }]);
+        { paperId: id, kind: "status", message: `Marked “${p.title}” as ${STATUS_LABEL[s]}` }));
     },
     deletePapers: async (ids) => {
       const set = new Set(ids);
-      await commit((w) => ({ ...w, papers: w.papers.filter((p) => !set.has(p.id)), collections: w.collections.map((c) => ({ ...c, paperIds: c.paperIds.filter((x) => !set.has(x)) })) }),
-        [{ type: "paper.delete", ids }]);
+      await commit((w) => ({ ...w, papers: w.papers.filter((p) => !set.has(p.id)), collections: w.collections.map((c) => ({ ...c, paperIds: c.paperIds.filter((x) => !set.has(x)) })) }));
     },
 
     upsertCollection: async (c) => {
@@ -200,75 +174,65 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (c.shared && !ent.sharedProjects) throw new LimitError("Shared projects are a Premium feature.");
       const full: Collection = { id: uid(), description: "", color: "#3048d6", paperIds: [], shared: false, goal: null, folderId: null, createdAt: now(), ...existing, ...defined(c) } as Collection;
       await commit((w) => ({ ...w, collections: existing ? w.collections.map((x) => (x.id === full.id ? full : x)) : [...w.collections, full],
-        members: !existing && full.shared ? { ...w.members, [full.id]: [{ email: userEmail ?? "you@example.com", name: "You", role: "owner", status: "active" }] } : w.members }),
-        [{ type: "collection.upsert", id: full.id, data: { name: full.name, description: full.description, color: full.color, goal: full.goal, shared: full.shared, folderId: full.folderId ?? null } }]);
+        members: !existing && full.shared ? { ...w.members, [full.id]: [{ email: userEmail ?? "you@example.com", name: "You", role: "owner", status: "active" }] } : w.members }));
       return full;
     },
     deleteCollection: async (id) => {
       const removed = wsRef.current.collections.find((c) => c.id === id);
-      await commit((w) => ({ ...w, collections: w.collections.filter((c) => c.id !== id) }), [{ type: "collection.delete", id }]);
+      await commit((w) => ({ ...w, collections: w.collections.filter((c) => c.id !== id) }));
       return () => {
         if (!removed) return;
-        commit((w) => ({ ...w, collections: [...w.collections, removed] }), [
-          { type: "collection.upsert", id: removed.id, data: { name: removed.name, description: removed.description, color: removed.color, goal: removed.goal, shared: removed.shared, folderId: removed.folderId ?? null } },
-          { type: "collection.papers", id: removed.id, add: removed.paperIds, remove: [] },
-        ]).catch(() => {});
+        commit((w) => ({ ...w, collections: [...w.collections, removed] })).catch(() => {});
       };
     },
     upsertFolder: async (f) => {
       const existing = f.id ? wsRef.current.folders.find((x) => x.id === f.id) : undefined;
       const full: Folder = { id: uid(), color: "#3048d6", createdAt: now(), ...existing, ...defined(f) } as Folder;
-      await commit((w) => ({ ...w, folders: existing ? w.folders.map((x) => (x.id === full.id ? full : x)) : [...w.folders, full] }), [{ type: "folder.upsert", id: full.id, data: { name: full.name, color: full.color } }]);
+      await commit((w) => ({ ...w, folders: existing ? w.folders.map((x) => (x.id === full.id ? full : x)) : [...w.folders, full] }));
       return full;
     },
     deleteFolder: async (id) => {
       // Collections inside are kept and moved to "Not in a folder"
-      await commit((w) => ({ ...w, folders: w.folders.filter((f) => f.id !== id), collections: w.collections.map((c) => (c.folderId === id ? { ...c, folderId: null } : c)) }), [{ type: "folder.delete", id }]);
+      await commit((w) => ({ ...w, folders: w.folders.filter((f) => f.id !== id), collections: w.collections.map((c) => (c.folderId === id ? { ...c, folderId: null } : c)) }));
     },
     moveCollection: async (id, folderId) => {
       const c = wsRef.current.collections.find((x) => x.id === id);
       if (!c) return;
-      await commit((w) => ({ ...w, collections: w.collections.map((x) => (x.id === id ? { ...x, folderId } : x)) }),
-        [{ type: "collection.upsert", id, data: { name: c.name, description: c.description, color: c.color, goal: c.goal, shared: c.shared, folderId } }]);
+      await commit((w) => ({ ...w, collections: w.collections.map((x) => (x.id === id ? { ...x, folderId } : x)) }));
     },
     setCollectionPapers: async (id, add, remove) => {
       const c = wsRef.current.collections.find((x) => x.id === id);
       await commit((w) => log({ ...w, collections: w.collections.map((x) => x.id === id ? { ...x, paperIds: [...new Set([...x.paperIds.filter((p) => !remove.includes(p)), ...add])] } : x) },
-        { paperId: add.length === 1 ? add[0] : remove.length === 1 ? remove[0] : null, kind: "collection", message: add.length ? `Added ${add.length} paper${add.length > 1 ? "s" : ""} to ${c?.name}` : `Removed ${remove.length} paper${remove.length > 1 ? "s" : ""} from ${c?.name}` }),
-        [{ type: "collection.papers", id, add, remove }]);
+        { paperId: add.length === 1 ? add[0] : remove.length === 1 ? remove[0] : null, kind: "collection", message: add.length ? `Added ${add.length} paper${add.length > 1 ? "s" : ""} to ${c?.name}` : `Removed ${remove.length} paper${remove.length > 1 ? "s" : ""} from ${c?.name}` }));
     },
 
     upsertReminder: async (r) => {
       const full: Reminder = { id: uid(), paperId: null, done: false, ...wsRef.current.reminders.find((x) => x.id === r.id), ...defined(r) } as Reminder;
       const isNew = !wsRef.current.reminders.some((x) => x.id === full.id);
       if (isNew && !ent.customReminders) throw new LimitError("Custom reminders are a Premium feature.");
-      await commit((w) => ({ ...w, reminders: isNew ? [...w.reminders, full] : w.reminders.map((x) => (x.id === full.id ? full : x)) }),
-        [{ type: "reminder.upsert", id: full.id, data: { paperId: full.paperId, text: full.text, due: full.due, done: full.done } }]);
+      await commit((w) => ({ ...w, reminders: isNew ? [...w.reminders, full] : w.reminders.map((x) => (x.id === full.id ? full : x)) }));
     },
-    deleteReminder: async (id) => commit((w) => ({ ...w, reminders: w.reminders.filter((r) => r.id !== id) }), [{ type: "reminder.delete", id }]),
+    deleteReminder: async (id) => commit((w) => ({ ...w, reminders: w.reminders.filter((r) => r.id !== id) })),
 
     addComment: async (paperId, collectionId, body) => {
       const c = { id: uid(), paperId, author: wsRef.current.profile.name || "You", body, createdAt: now() };
-      await commit((w) => log({ ...w, comments: [...w.comments, c] }, { paperId, kind: "comment", message: "Commented on a shared paper" }), [{ type: "comment.create", id: c.id, paperId, collectionId, body }]);
+      await commit((w) => log({ ...w, comments: [...w.comments, c] }, { paperId, kind: "comment", message: "Commented on a shared paper" }));
     },
     invite: async (collectionId, email, role) => {
       if (!ent.sharedProjects) throw new LimitError("Shared projects are a Premium feature.");
-      await commit((w) => ({ ...w, members: { ...w.members, [collectionId]: [...(w.members[collectionId] ?? []), { email, name: email.split("@")[0], role, status: "invited" }] } }),
-        [{ type: "invite.create", collectionId, email, role }]);
+      await commit((w) => ({ ...w, members: { ...w.members, [collectionId]: [...(w.members[collectionId] ?? []), { email, name: email.split("@")[0], role, status: "invited" }] } }));
     },
     respondInvite: async (id, accept) => {
-      await commit((w) => ({ ...w, invitations: w.invitations.map((i) => (i.id === id ? { ...i, status: accept ? "accepted" : "declined" } : i)) }), [{ type: "invite.respond", id, accept }]);
-      if (accept && modeRef.current === "cloud") await load();
+      await commit((w) => ({ ...w, invitations: w.invitations.map((i) => (i.id === id ? { ...i, status: accept ? "accepted" : "declined" } : i)) }));
     },
-    updateProfile: async (p) => commit((w) => ({ ...w, profile: { ...w.profile, ...p } }), [{ type: "profile.update", data: p }]),
+    updateProfile: async (p) => commit((w) => ({ ...w, profile: { ...w.profile, ...p } })),
     saveView: async (name, query, filters) => {
       if (!ent.savedSearches) throw new LimitError("Saved searches are a Premium feature.");
       const v: SavedView = { id: uid(), name, query, filters };
-      await commit((w) => ({ ...w, savedViews: [...w.savedViews, v] }), [{ type: "view.upsert", id: v.id, name, query, filters: filters as unknown as Record<string, unknown> }]);
+      await commit((w) => ({ ...w, savedViews: [...w.savedViews, v] }));
     },
-    deleteView: async (id) => commit((w) => ({ ...w, savedViews: w.savedViews.filter((v) => v.id !== id) }), [{ type: "view.delete", id }]),
+    deleteView: async (id) => commit((w) => ({ ...w, savedViews: w.savedViews.filter((v) => v.id !== id) })),
     simulatePlan: (plan, subscriptionStatus) => {
-      if (modeRef.current !== "demo") return; // never in cloud mode — billing is webhook-driven
       setWs((w) => ({ ...w, plan, subscriptionStatus }));
     },
   };

@@ -68,7 +68,7 @@ const features = [
 export default function Landing() {
   const { enterDemo, mode } = useStore();
   const router = useRouter();
-  const demo = () => { if (mode !== "cloud") enterDemo(); router.push("/app"); };
+  const demo = () => { if (mode !== "demo") enterDemo(); router.push("/app"); };
   return (
     <div className="overflow-x-hidden">
       <header className="sticky top-0 z-30 border-b border-line/70 bg-paper/85 backdrop-blur">
@@ -77,7 +77,7 @@ export default function Landing() {
           <nav aria-label="Primary" className="flex items-center gap-1 sm:gap-2">
             <a href="#features" className="hidden px-3 text-sm text-ink-2 hover:text-ink sm:inline">Features</a>
             <a href="#plans" className="hidden px-3 text-sm text-ink-2 hover:text-ink sm:inline">Plans</a>
-            {mode === "cloud" || mode === "demo" ? <Link href="/app"><Button size="sm" variant="primary">Open app</Button></Link> : <>
+            {mode === "demo" ? <Link href="/app"><Button size="sm" variant="primary">Open app</Button></Link> : <>
               <Link href="/auth/sign-in"><Button size="sm" variant="ghost">Sign in</Button></Link>
               <Link href="/auth/sign-up"><Button size="sm" variant="primary">Start your library</Button></Link>
             </>}

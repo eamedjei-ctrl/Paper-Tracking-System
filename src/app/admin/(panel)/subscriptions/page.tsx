@@ -5,14 +5,14 @@ import { Card } from "@/components/ui";
 import { relTime } from "@/lib/util";
 
 export default function AdminSubscriptions() {
-  const { users, mode } = useAdmin();
+  const { users } = useAdmin();
   const premium = users.filter((u) => u.plan === "premium");
   const pastDue = premium.filter((u) => u.subStatus === "past_due");
   const near = users.filter((u) => u.plan === "standard" && u.papers >= 160).sort((a, b) => b.papers - a.papers);
   return (
     <div>
       <h1 className="font-serif text-3xl font-semibold">Subscriptions</h1>
-      <p className="mt-1 text-sm text-ink-3">Plan status comes only from verified Stripe webhooks.{mode === "demo" && " Demo figures are simulated."}</p>
+      <p className="mt-1 text-sm text-ink-3">Demo figures are simulated.</p>
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Premium" value={premium.length} tone="mint" /><Stat label="Standard" value={users.length - premium.length} />
         <Stat label="Past due" value={pastDue.length} tone="amber" hint="In grace period" /><Stat label="Conversion" value={`${users.length ? Math.round((premium.length / users.length) * 100) : 0}%`} hint="Premium / all users" />

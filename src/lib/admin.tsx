@@ -1,6 +1,5 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { api, backendEnabled } from "./api";
 
 export interface AdminUser {
   id: string; email: string; name: string; researchRole: string | null; joinedAt: string; lastSignInAt: string | null; confirmed: boolean;
@@ -10,7 +9,7 @@ export interface AdminEvent { id: string; user: string; userId: string; kind: st
 export interface AuditEntry { id: string; admin_email: string; action: "block" | "unblock" | "view_user"; target_email: string | null; target_user_id: string | null; reason: string | null; at: string }
 export interface Overview { totals: { users: number; blocked: number; papers: number; collections: number; premium: number; pastDue: number; storageBytes: number }; signups: string[]; events: AdminEvent[]; audit: AuditEntry[] }
 
-type Mode = "loading" | "demo" | "cloud" | "signed_out";
+type Mode = "loading" | "demo" | "signed_out";
 interface Ctx {
   mode: Mode; me: { email: string; role: "admin" | "owner" } | null;
   users: AdminUser[]; overview: Overview | null; error: string;
@@ -59,34 +58,21 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<Ctx["me"]>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [overview, setOverview] = useState<Overview | null>(null);
-  const [error, setError] = useState("");
-
-  const loadCloud = useCallback(async () => {
-    const [o, u] = await Promise.all([api<Overview>("/admin/overview"), api<{ users: AdminUser[] }>("/admin/users")]);
-    setOverview(o); setUsers(u.users);
-  }, []);
+  const error = "";
 
   const init = useCallback(async () => {
-    if (backendEnabled) {
-      const who = await api<{ email: string; role: "admin" | "owner" }>("/admin/me").catch(() => null);
-      if (who) { setMe(who); setMode("cloud"); try { await loadCloud(); } catch (e) { setError((e as Error).message); } return; }
-    }
     const raw = localStorage.getItem(KEY);
     if (raw) { try { const d = JSON.parse(raw); setUsers(d.users); setOverview(totals(d.users, d.overview)); setMe({ email: "admin@papertrail.example", role: "owner" }); setMode("demo"); return; } catch { localStorage.removeItem(KEY); } }
     setMode("signed_out");
-  }, [loadCloud]);
+  }, []);
   useEffect(() => { init(); }, [init]);
 
   const persist = (u: AdminUser[], o: Overview) => { localStorage.setItem(KEY, JSON.stringify({ users: u, overview: o })); setUsers(u); setOverview(totals(u, o)); };
 
   const value: Ctx = {
     mode, me, users, overview, error,
-    refresh: async () => { if (mode === "cloud") { setError(""); try { await loadCloud(); } catch (e) { setError((e as Error).message); } } },
+    refresh: async () => {},
     setBlocked: async (id, block, reason) => {
-      if (mode === "cloud") {
-        await api(`/admin/users/${id}`, { method: "POST", json: { action: block ? "block" : "unblock", reason } });
-        await loadCloud(); return;
-      }
       const target = users.find((u) => u.id === id);
       if (!target) return;
       if (target.isAdmin && block) throw new Error("You can't block your own account");
@@ -97,7 +83,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     },
     enterDemo: () => { const d = demoData(); localStorage.setItem(KEY, JSON.stringify(d)); setUsers(d.users); setOverview(totals(d.users, d.overview)); setMe({ email: "admin@papertrail.example", role: "owner" }); setMode("demo"); },
     signOut: async () => {
-      if (mode === "demo") localStorage.removeItem(KEY); else await api("/auth/sign-out", { method: "POST" }).catch(() => {});
+      localStorage.removeItem(KEY);
       setMode("signed_out"); setMe(null); setUsers([]); setOverview(null);
     },
   };

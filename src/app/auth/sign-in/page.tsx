@@ -3,17 +3,15 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { AuthShell, DemoButton, Divider, PasswordInput, friendlyAuthError, NOT_CONFIGURED } from "@/components/auth-shell";
+import { AuthShell, DemoButton, Divider, PasswordInput, NOT_CONFIGURED } from "@/components/auth-shell";
 import { Button, inputCls } from "@/components/ui";
-import { api, backendEnabled } from "@/lib/api";
 import { cn } from "@/lib/util";
 
 function Form() {
   const sp = useSearchParams();
   const [email, setEmail] = useState(""); const [pw, setPw] = useState("");
   const [errs, setErrs] = useState<{ email?: string; pw?: string; form?: string }>({});
-  const [busy, setBusy] = useState(false);
-  const next = sp.get("next")?.startsWith("/") && !sp.get("next")?.startsWith("//") ? sp.get("next")! : "/app";
+  const busy = false;
   const linkError = sp.get("error") === "link";
 
   const submit = async (e: React.FormEvent) => {
@@ -23,11 +21,7 @@ function Form() {
     if (!pw) v.pw = "Enter your password.";
     setErrs(v);
     if (Object.keys(v).length) return;
-    if (!backendEnabled) return setErrs({ form: NOT_CONFIGURED });
-    setBusy(true);
-    try { await api("/auth/sign-in", { method: "POST", json: { email: email.trim(), password: pw } }); }
-    catch (err) { setErrs({ form: friendlyAuthError(err instanceof Error ? err.message : "Sign-in failed") }); setBusy(false); return; }
-    window.location.href = next;
+    setErrs({ form: NOT_CONFIGURED });
   };
 
   return (

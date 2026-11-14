@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { LayoutDashboard, Library, Plus, FolderKanban, Settings, Sparkles, Bell, Bookmark, Users, Quote, Workflow, Menu as MenuIcon, X, Search, LogOut, Cloud, CloudOff, Loader2, Check, FlaskConical } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { api } from "@/lib/api";
 import { cn } from "@/lib/util";
 import { dur, ease, pop } from "@/lib/motion";
 import { Logo } from "./logo";
@@ -69,9 +68,7 @@ function SidebarFooter() {
   const plan = effectivePlan(ws.plan, ws.subscriptionStatus);
   void saveState;
   const signOut = async () => {
-    if (mode === "demo") { exitDemo(); router.push("/"); return; }
-    await api("/auth/sign-out", { method: "POST" }).catch(() => {});
-    window.location.href = "/";
+    exitDemo(); router.push("/");
   };
   return (
     <div className="space-y-3 border-t border-line pt-4">
@@ -152,7 +149,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (mode === "signed_out") router.replace("/auth/sign-in?next=" + encodeURIComponent(path));
-    if (mode === "cloud" && !ws.profile.onboarded) router.replace("/onboarding");
   }, [mode, ws.profile.onboarded, router, path]);
 
   useEffect(() => {
