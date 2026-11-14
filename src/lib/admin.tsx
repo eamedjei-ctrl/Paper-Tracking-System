@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { isSupabaseConfigured } from "./store";
+import { api, backendEnabled } from "./api";
 
 export interface AdminUser {
   id: string; email: string; name: string; researchRole: string | null; joinedAt: string; lastSignInAt: string | null; confirmed: boolean;
@@ -62,15 +62,14 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState("");
 
   const loadCloud = useCallback(async () => {
-    const [o, u] = await Promise.all([fetch("/api/admin/overview", { cache: "no-store" }), fetch("/api/admin/users", { cache: "no-store" })]);
-    if (!o.ok || !u.ok) throw new Error((await (o.ok ? u : o).json().catch(() => ({}))).error ?? "Couldn't load admin data");
-    setOverview(await o.json()); setUsers((await u.json()).users);
+    const [o, u] = await Promise.all([api<Overview>("/admin/overview"), api<{ users: AdminUser[] }>("/admin/users")]);
+    setOverview(o); setUsers(u.users);
   }, []);
 
   const init = useCallback(async () => {
-    if (isSupabaseConfigured) {
-      const r = await fetch("/api/admin/me", { cache: "no-store" }).catch(() => null);
-      if (r?.ok) { setMe(await r.json()); setMode("cloud"); try { await loadCloud(); } catch (e) { setError((e as Error).message); } return; }
+    if (backendEnabled) {
+      const who = await api<{ email: string; role: "admin" | "owner" }>("/admin/me").catch(() => null);
+      if (who) { setMe(who); setMode("cloud"); try { await loadCloud(); } catch (e) { setError((e as Error).message); } return; }
     }
     const raw = localStorage.getItem(KEY);
     if (raw) { try { const d = JSON.parse(raw); setUsers(d.users); setOverview(totals(d.users, d.overview)); setMe({ email: "admin@papertrail.example", role: "owner" }); setMode("demo"); return; } catch { localStorage.removeItem(KEY); } }
@@ -85,8 +84,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     refresh: async () => { if (mode === "cloud") { setError(""); try { await loadCloud(); } catch (e) { setError((e as Error).message); } } },
     setBlocked: async (id, block, reason) => {
       if (mode === "cloud") {
-        const r = await fetch(`/api/admin/users/${id}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: block ? "block" : "unblock", reason }) });
-        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? "Couldn't update account");
+        await api(`/admin/users/${id}`, { method: "POST", json: { action: block ? "block" : "unblock", reason } });
         await loadCloud(); return;
       }
       const target = users.find((u) => u.id === id);
@@ -99,7 +97,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     },
     enterDemo: () => { const d = demoData(); localStorage.setItem(KEY, JSON.stringify(d)); setUsers(d.users); setOverview(totals(d.users, d.overview)); setMe({ email: "admin@papertrail.example", role: "owner" }); setMode("demo"); },
     signOut: async () => {
-      if (mode === "demo") localStorage.removeItem(KEY); else await fetch("/api/auth/sign-out", { method: "POST" });
+      if (mode === "demo") localStorage.removeItem(KEY); else await api("/auth/sign-out", { method: "POST" }).catch(() => {});
       setMode("signed_out"); setMe(null); setUsers([]); setOverview(null);
     },
   };

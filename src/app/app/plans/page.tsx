@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { FlaskConical, AlertTriangle, CreditCard } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { api, backendEnabled } from "@/lib/api";
 import { PageHeader } from "@/components/shell";
 import { Button, Card, useToast } from "@/components/ui";
 import { PlanCards } from "@/components/plan-cards";
@@ -29,16 +30,14 @@ export default function Plans() {
   const toast = useToast();
   const [billing, setBilling] = useState<{ configured: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { fetch("/api/billing/status").then((r) => r.json()).then(setBilling, () => setBilling({ configured: false })); }, []);
+  useEffect(() => { if (!backendEnabled) { setBilling({ configured: false }); return; } api<{ configured: boolean }>("/billing/status").then(setBilling, () => setBilling({ configured: false })); }, []);
   const plan = effectivePlan(ws.plan, ws.subscriptionStatus);
   const storage = ws.papers.reduce((s, p) => s + (p.pdf?.size ?? 0), 0);
 
   const go = async (path: "checkout" | "portal") => {
     setBusy(true);
     try {
-      const r = await fetch(`/api/billing/${path}`, { method: "POST" });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
+      const j = await api<{ url: string }>(`/billing/${path}`, { method: "POST" });
       window.location.href = j.url;
     } catch (e) { toast(e instanceof Error ? e.message : "Billing unavailable", "error"); setBusy(false); }
   };
@@ -75,7 +74,7 @@ export default function Plans() {
               <p className="text-xs text-ink-3">Payments are handled by Stripe. Your plan updates once Stripe confirms payment.</p>
             </div>
           ) : (
-            <p className="mt-4 rounded-xl bg-stone p-3 text-xs text-ink-2">Billing is not configured on this deployment. See README → “Stripe billing” to enable upgrades.</p>
+            <p className="mt-4 rounded-xl bg-stone p-3 text-xs text-ink-2">Billing isn't connected yet. It's provided by the backend (see docs/BACKEND_API.md → Billing).</p>
           )}
         </Card>
       </div>

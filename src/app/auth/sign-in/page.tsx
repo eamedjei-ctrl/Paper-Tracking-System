@@ -5,8 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { AuthShell, DemoButton, Divider, PasswordInput, friendlyAuthError, NOT_CONFIGURED } from "@/components/auth-shell";
 import { Button, inputCls } from "@/components/ui";
-import { supabaseBrowser } from "@/lib/supabase/browser";
-import { isSupabaseConfigured } from "@/lib/store";
+import { api, backendEnabled } from "@/lib/api";
 import { cn } from "@/lib/util";
 
 function Form() {
@@ -24,10 +23,10 @@ function Form() {
     if (!pw) v.pw = "Enter your password.";
     setErrs(v);
     if (Object.keys(v).length) return;
-    if (!isSupabaseConfigured) return setErrs({ form: NOT_CONFIGURED });
+    if (!backendEnabled) return setErrs({ form: NOT_CONFIGURED });
     setBusy(true);
-    const { error } = await supabaseBrowser().auth.signInWithPassword({ email: email.trim(), password: pw });
-    if (error) { setErrs({ form: friendlyAuthError(error.message) }); setBusy(false); return; }
+    try { await api("/auth/sign-in", { method: "POST", json: { email: email.trim(), password: pw } }); }
+    catch (err) { setErrs({ form: friendlyAuthError(err instanceof Error ? err.message : "Sign-in failed") }); setBusy(false); return; }
     window.location.href = next;
   };
 

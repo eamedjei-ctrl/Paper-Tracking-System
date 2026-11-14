@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { Eye, EyeOff, FlaskConical, Info } from "lucide-react";
 import { Logo } from "./logo";
 import { Button, StatusPill, ProgressBar, inputCls } from "./ui";
-import { useStore, isSupabaseConfigured } from "@/lib/store";
+import { useStore, backendEnabled } from "@/lib/store";
 import { cn } from "@/lib/util";
 
 export const NOT_CONFIGURED = "Accounts aren't connected on this deployment yet, so sign-in isn't available. You can explore everything in the demo meanwhile.";
@@ -44,7 +44,7 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
         <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
           <h1 className="font-serif text-3xl font-semibold tracking-tight">{title}</h1>
           {subtitle && <p className="mt-1.5 text-sm text-ink-3">{subtitle}</p>}
-          {!isSupabaseConfigured && (
+          {!backendEnabled && (
             <div className="mt-6 flex gap-2.5 rounded-xl border border-amber/30 bg-amber-soft/70 p-3 text-[13px] text-ink-2">
               <Info className="mt-0.5 size-4 shrink-0 text-amber" aria-hidden />
               <span>Accounts aren't connected yet. <button className="font-semibold text-accent underline underline-offset-2" onClick={() => { enterDemo(); router.push("/app"); }}>Explore the demo</button> instead.</span>
@@ -86,7 +86,7 @@ export function Divider({ label }: { label: string }) {
 }
 
 export function friendlyAuthError(msg: string) {
-  if (/invalid login/i.test(msg)) return "That email and password don't match. Check for typos or reset your password.";
+  if (/invalid login|invalid credentials|401/i.test(msg)) return "That email and password don't match. Check for typos or reset your password.";
   if (/already registered|already exists/i.test(msg)) return "An account with this email already exists. Try signing in instead.";
   if (/email not confirmed/i.test(msg)) return "Please confirm your email first — check your inbox for the link.";
   if (/rate limit/i.test(msg)) return "Too many attempts. Please wait a minute and try again.";

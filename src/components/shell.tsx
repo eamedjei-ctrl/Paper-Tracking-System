@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { LayoutDashboard, Library, Plus, FolderKanban, Settings, Sparkles, Bell, Bookmark, Users, Quote, Workflow, Menu as MenuIcon, X, Search, LogOut, Cloud, CloudOff, Loader2, Check, FlaskConical } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/util";
 import { dur, ease, pop } from "@/lib/motion";
 import { Logo } from "./logo";
@@ -69,7 +70,7 @@ function SidebarFooter() {
   void saveState;
   const signOut = async () => {
     if (mode === "demo") { exitDemo(); router.push("/"); return; }
-    await fetch("/api/auth/sign-out", { method: "POST" });
+    await api("/auth/sign-out", { method: "POST" }).catch(() => {});
     window.location.href = "/";
   };
   return (

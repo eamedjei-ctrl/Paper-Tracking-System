@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Trash2, RotateCcw } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { api } from "@/lib/api";
 import { PageHeader } from "@/components/shell";
 import { Button, Card, Dialog, Field, inputCls, useToast } from "@/components/ui";
 import { toBibtex, toRis, formatCitation } from "@/lib/citations";
@@ -43,8 +44,8 @@ export default function Settings() {
   const deleteAccount = async () => {
     setBusy(true);
     if (mode === "demo") { exitDemo(); router.push("/"); return; }
-    const r = await fetch("/api/account", { method: "DELETE" });
-    if (r.ok) window.location.href = "/?deleted=1"; else { setBusy(false); toast("Couldn't delete account. Please try again.", "error"); }
+    try { await api("/account", { method: "DELETE" }); window.location.href = "/?deleted=1"; }
+    catch { setBusy(false); toast("Couldn't delete account. Please try again.", "error"); }
   };
 
   return (

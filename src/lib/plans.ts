@@ -1,8 +1,8 @@
 import type { PlanId, SubscriptionStatus } from "./types";
 
 /**
- * Single source of truth for entitlements. Imported by server routes (authoritative)
- * and by the client (only to explain limits — never to grant access).
+ * Single source of truth for entitlements. The backend must enforce these (see docs/BACKEND_API.md);
+ * the client only uses them to explain limits — never to grant access.
  */
 export interface Entitlements {
   maxPapers: number | null;

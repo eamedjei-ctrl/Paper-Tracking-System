@@ -9,6 +9,7 @@ import { useStore } from "@/lib/store";
 import { PageHeader } from "@/components/shell";
 import { Button, Card, inputCls, useToast } from "@/components/ui";
 import { PaperForm, emptyDraft, validateDraft, draftToPaper, type Draft } from "@/components/paper-form";
+import { lookupDoi } from "@/lib/crossref";
 import { parseBibtex, parseRis, findDuplicate, type ImportRecord } from "@/lib/importers";
 import { cn, authorLine } from "@/lib/util";
 import { spring } from "@/lib/motion";
@@ -97,11 +98,9 @@ function DoiLookup() {
     if (!/^10\.\S+\/\S+$/.test(clean)) { setState("error"); setErr("That doesn't look like a DOI. DOIs start with 10. and contain a slash."); return; }
     setState("loading");
     try {
-      const r = await fetch(`/api/doi?doi=${encodeURIComponent(clean)}`);
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Lookup failed");
+      const j = await lookupDoi(clean);
       // Merge: fetched values only fill fields the user hasn't typed into
-      setD((cur) => ({ ...cur, doi: clean, title: cur.title || j.title, authors: cur.authors || j.authors.map((a: { given: string; family: string }) => `${a.given} ${a.family}`.trim()).join(" and "), year: cur.year || (j.year ? String(j.year) : ""), venue: cur.venue || j.venue, abstract: cur.abstract || j.abstract, url: cur.url || j.url }));
+      setD((cur) => ({ ...cur, doi: clean, title: cur.title || j.title, authors: cur.authors || j.authors.map((a) => `${a.given} ${a.family}`.trim()).join(" and "), year: cur.year || (j.year ? String(j.year) : ""), venue: cur.venue || j.venue, abstract: cur.abstract || j.abstract, url: cur.url || j.url }));
       setState("found");
     } catch (e) {
       setState("error");

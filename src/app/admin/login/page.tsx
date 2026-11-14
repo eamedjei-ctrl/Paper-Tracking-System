@@ -8,8 +8,7 @@ import { Logo } from "@/components/logo";
 import { PasswordInput } from "@/components/auth-shell";
 import { Button, inputCls } from "@/components/ui";
 import { useAdmin } from "@/lib/admin";
-import { isSupabaseConfigured } from "@/lib/store";
-import { supabaseBrowser } from "@/lib/supabase/browser";
+import { api, ApiError, backendEnabled } from "@/lib/api";
 import { cn } from "@/lib/util";
 
 export default function AdminLogin() {
@@ -22,13 +21,12 @@ export default function AdminLogin() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setErr("");
     if (!/^\S+@\S+\.\S+$/.test(email) || !pw) return setErr("Enter your admin email and password.");
-    if (!isSupabaseConfigured) return setErr("Accounts aren't connected on this deployment, so admin sign-in isn't available. Use the admin demo below.");
+    if (!backendEnabled) return setErr("Accounts aren't connected on this deployment, so admin sign-in isn't available. Use the admin demo below.");
     setBusy(true);
-    const sb = supabaseBrowser();
-    const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pw });
-    if (error) { setBusy(false); return setErr(/invalid login/i.test(error.message) ? "That email and password don't match." : error.message); }
-    const r = await fetch("/api/admin/me", { cache: "no-store" });
-    if (!r.ok) { await sb.auth.signOut(); setBusy(false); return setErr(r.status === 403 ? "This account doesn't have admin access." : "Admin backend isn't configured (needs SUPABASE_SERVICE_ROLE_KEY)."); }
+    try { await api("/auth/sign-in", { method: "POST", json: { email: email.trim(), password: pw } }); }
+    catch (e2) { setBusy(false); return setErr(e2 instanceof ApiError && e2.status === 401 ? "That email and password don't match." : e2 instanceof Error ? e2.message : "Sign-in failed"); }
+    try { await api("/admin/me"); }
+    catch (e2) { await api("/auth/sign-out", { method: "POST" }).catch(() => {}); setBusy(false); return setErr(e2 instanceof ApiError && e2.status === 403 ? "This account doesn't have admin access." : "The admin service isn't available."); }
     window.location.href = "/admin";
   };
 

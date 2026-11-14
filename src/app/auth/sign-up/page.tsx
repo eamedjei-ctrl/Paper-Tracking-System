@@ -4,8 +4,7 @@ import Link from "next/link";
 import { MailCheck } from "lucide-react";
 import { AuthShell, friendlyAuthError } from "@/components/auth-shell";
 import { Button, Field, inputCls } from "@/components/ui";
-import { supabaseBrowser } from "@/lib/supabase/browser";
-import { isSupabaseConfigured } from "@/lib/store";
+import { api, backendEnabled } from "@/lib/api";
 import { NOT_CONFIGURED } from "@/components/auth-shell";
 
 export default function SignUp() {
@@ -22,12 +21,13 @@ export default function SignUp() {
           if (!/^\S+@\S+\.\S+$/.test(email)) v.email = "Enter a valid email address.";
           if (pw.length < 8) v.pw = "Use at least 8 characters.";
           setErrs(v); if (Object.keys(v).length) return;
-          if (!isSupabaseConfigured) { setErrs({ form: NOT_CONFIGURED }); return; }
+          if (!backendEnabled) { setErrs({ form: NOT_CONFIGURED }); return; }
           setBusy(true);
-          const { data, error } = await supabaseBrowser().auth.signUp({ email, password: pw, options: { data: { name: name.trim() }, emailRedirectTo: `${location.origin}/auth/callback?next=/onboarding` } });
-          setBusy(false);
-          if (error) return setErrs({ form: friendlyAuthError(error.message) });
-          if (data.session) window.location.href = "/onboarding"; else setSent(true);
+          try {
+            const res = await api<{ signedIn: boolean }>("/auth/sign-up", { method: "POST", json: { name: name.trim(), email, password: pw, confirmRedirect: `${location.origin}/onboarding` } });
+            setBusy(false);
+            if (res.signedIn) window.location.href = "/onboarding"; else setSent(true);
+          } catch (err) { setBusy(false); setErrs({ form: friendlyAuthError(err instanceof Error ? err.message : "Sign-up failed") }); }
         }}>
           <Field label="Name (optional)" id="name"><input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></Field>
           <Field label="Email" id="email" error={errs.email}><input id="email" type="email" autoComplete="email" aria-invalid={!!errs.email} value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} /></Field>

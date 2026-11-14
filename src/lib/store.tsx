@@ -12,7 +12,8 @@ export type Mode = "loading" | "demo" | "cloud" | "signed_out";
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
 const DEMO_KEY = "papertrail-demo-v1";
-export const isSupabaseConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+import { api as callApi, backendEnabled } from "./api";
+export { backendEnabled };
 
 export class LimitError extends Error {}
 
@@ -90,15 +91,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   wsRef.current = ws;
 
   const load = useCallback(async () => {
-    if (isSupabaseConfigured) {
+    if (backendEnabled) {
       try {
-        const r = await fetch("/api/workspace", { cache: "no-store" });
-        if (r.ok) {
-          const j = await r.json();
-          setWs(j.workspace); setUserEmail(j.email); setMode("cloud");
-          return;
-        }
-      } catch { /* fall through */ }
+        const j = await callApi<{ workspace: Workspace; email: string }>("/workspace");
+        setWs({ ...j.workspace, folders: j.workspace.folders ?? [] }); setUserEmail(j.email); setMode("cloud");
+        return;
+      } catch { /* not signed in or backend down → fall through to demo / signed out */ }
     }
     const raw = typeof window !== "undefined" ? localStorage.getItem(DEMO_KEY) : null;
     if (raw) {
@@ -139,11 +137,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (modeRef.current !== "cloud") { setSaveState("saved"); return; }
     setSaveState("saving");
     try {
-      const r = await fetch("/api/ops", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ops }) });
-      if (!r.ok) {
-        const j = await r.json().catch(() => ({}));
-        throw new Error(j.error || "Couldn't save");
-      }
+      await callApi("/ops", { method: "POST", json: { ops } });
       setSaveState("saved");
     } catch (e) {
       setWs(prev); wsRef.current = prev; setSaveState("error");

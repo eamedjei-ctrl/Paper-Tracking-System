@@ -3,8 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { AuthShell } from "@/components/auth-shell";
 import { Button, Field, inputCls } from "@/components/ui";
-import { supabaseBrowser } from "@/lib/supabase/browser";
-import { isSupabaseConfigured } from "@/lib/store";
+import { api, backendEnabled } from "@/lib/api";
 import { NOT_CONFIGURED } from "@/components/auth-shell";
 
 export default function Reset() {
@@ -15,11 +14,11 @@ export default function Reset() {
         <form noValidate className="space-y-4" onSubmit={async (e) => {
           e.preventDefault(); setErr("");
           if (!/^\S+@\S+\.\S+$/.test(email)) return setErr("Enter a valid email address.");
-          if (!isSupabaseConfigured) { setErr(NOT_CONFIGURED); return; }
+          if (!backendEnabled) { setErr(NOT_CONFIGURED); return; }
           setBusy(true);
-          const { error } = await supabaseBrowser().auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/auth/callback?next=/auth/update-password` });
+          try { await api("/auth/reset-password", { method: "POST", json: { email, redirectTo: `${location.origin}/auth/update-password` } }); }
+          catch (err) { if (err instanceof Error && /rate|429/i.test(err.message)) { setBusy(false); return setErr("Too many requests. Please wait a minute."); } }
           setBusy(false);
-          if (error && /rate/i.test(error.message)) return setErr("Too many requests. Please wait a minute.");
           setDone(true);
         }}>
           <Field label="Email" id="email" error={err}><input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} /></Field>

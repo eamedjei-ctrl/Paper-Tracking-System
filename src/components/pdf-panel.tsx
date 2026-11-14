@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { FileText, Upload, ExternalLink, Trash2, AlertTriangle } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { api, apiUrl } from "@/lib/api";
 import { Button, Card, useToast } from "./ui";
 import { formatBytes } from "@/lib/util";
 import { MAX_PDF_BYTES } from "@/lib/plans";
@@ -36,9 +37,10 @@ export function PdfPanel({ paper }: { paper: Paper }) {
       return;
     }
     setProgress(0);
-    const fd = new FormData(); fd.append("file", f); fd.append("paperId", paper.id);
+    const fd = new FormData(); fd.append("file", f);
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/upload");
+    xhr.open("POST", apiUrl(`/papers/${paper.id}/pdf`));
+    xhr.withCredentials = true;
     xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
     xhr.onload = async () => {
       setProgress(null);
@@ -60,15 +62,13 @@ export function PdfPanel({ paper }: { paper: Paper }) {
       if (u) window.open(u, "_blank", "noopener"); else setErr("Demo PDFs are kept only for the browser session in which they were attached. Attach it again to view.");
       return;
     }
-    const r = await fetch(`/api/upload?paperId=${paper.id}`);
-    const j = await r.json();
-    if (r.ok) window.open(j.url, "_blank", "noopener"); else setErr(j.error || "Couldn't open PDF");
+    try { const j = await api<{ url: string }>(`/papers/${paper.id}/pdf`); window.open(j.url, "_blank", "noopener"); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Couldn't open PDF"); }
   };
 
   const remove = async () => {
     if (mode === "cloud") {
-      const r = await fetch(`/api/upload?paperId=${paper.id}`, { method: "DELETE" });
-      if (!r.ok) return setErr("Couldn't remove the PDF.");
+      try { await api(`/papers/${paper.id}/pdf`, { method: "DELETE" }); } catch { return setErr("Couldn't remove the PDF."); }
     }
     demoBlobs.delete(paper.id);
     await updatePapers([paper.id], { pdf: null });
